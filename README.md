@@ -4,7 +4,7 @@ Age-sex-GAD7-PHQ9-GLAD
 ## Authors: Katherine N Thompson, Christopher Hübel, Rosa Cheeseman ... Gerome Breen, Thalia Eley. 
 
 All code written by Katherine N Thompson. 
-Analyses for these analyses were conducted in R Studio version 4.0.2.
+Analyses were conducted in R Studio version 4.0.2.
 
 The analysis script includes three main components:
 1. Descriptive statistics for the GLAD sample. 
