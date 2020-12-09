@@ -1,7 +1,7 @@
 Age-sex-GAD7-PHQ9-GLAD
 
 # Code for manuscript "Age and sex-related variability in the presentation of anxiety and depression symptoms in the GLAD Study" 
-## Authors: Katherine N Thompson, Christopher Hübel, Rosa Cheeseman ... Gerome Breen, Thalia Eley. 
+## Authors: Katherine N Thompson ... Gerome Breen, Thalia Eley. 
 
 All code written by Katherine N Thompson. 
 Analyses were conducted in R Studio version 4.0.2.
