@@ -6,6 +6,8 @@ Age-sex-GAD7-PHQ9-GLAD
 All code written by Katherine N Thompson. 
 Analyses were conducted in R Studio version 4.0.2.
 
+Data used were from the Genetic Links to Anxiety and Depression (GLAD) Study (https://gladstudy.org.uk/)
+
 The analysis script includes the following components:
 
 1. Set-up and preparation of data for analysis
