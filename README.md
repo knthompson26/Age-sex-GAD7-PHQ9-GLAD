@@ -1,7 +1,7 @@
 Age-sex-GAD7-PHQ9-GLAD
 
 # Code for manuscript "Age and sex-related variability in the presentation of anxiety and depression symptoms" 
-## Authors: Katherine N Thompson ... Gerome Breen, Thalia Eley. 
+## Authors: Katherine N Thompson, Christopher Hübel, Rosa Cheesman ... Gerome Breen, Thalia Eley. 
 
 All code written by Katherine N Thompson.  
 
@@ -27,7 +27,7 @@ The analysis script includes the following components:
   
   b) Linear regression analyses for factor scores (factor ~ age/10 + sex + PHQ.total.score + GAD.total.score)
 
-**When using this code, please reference the above paper.**
+**Please note, the current paper is under review. DOI and reference will be available once published.**
 
 
 
