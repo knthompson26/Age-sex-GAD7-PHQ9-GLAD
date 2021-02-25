@@ -4,7 +4,7 @@ Age-sex-GAD7-PHQ9-GLAD
 ## Authors: Katherine N Thompson ... Gerome Breen, Thalia Eley. 
 
 All code written by Katherine N Thompson.  
-Paper DOI: XXX-XXX-XXX.  
+
 Analyses were conducted in R Studio version 4.0.2.  
 
 Data used were from the Genetic Links to Anxiety and Depression (GLAD) Study (https://gladstudy.org.uk/)
