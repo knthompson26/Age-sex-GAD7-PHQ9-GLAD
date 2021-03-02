@@ -11,17 +11,15 @@ Data used were from the Genetic Links to Anxiety and Depression (GLAD) Study (ht
 
 The analysis script includes the following components:
 
-1. Set-up and preparation of data for analysis
+1. Data preparation and descriptive statistics for the GLAD sample
 
-2. Descriptive statistics for the GLAD sample
-
-3. Factor analyses
+2. Factor analyses
   
   a) Exploratory factor analyses: 1-6 factors run for 15 and 16 item model. 
   
   b) Confirmatory factor analyses: confirmation of 4 factor model in entire data set. 
 
-4. Regression analyses with age and sex:
+3. Regression analyses with age and sex:
   
   a) Logistic regression analyses for individual symptoms (symptom_binary ~ age/10 + sex + PHQ.total.score + GAD.total.score)
   
