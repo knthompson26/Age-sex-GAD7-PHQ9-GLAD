@@ -1024,30 +1024,12 @@ endorsement_plot <- sjPlot::plot_likert(
 #have a look at the plot
 endorsement_plot
 
-#save the plot
-ggsave(
-  "endorsement_plot.pdf",
-  plot = endorsement_plot,
-  device = "pdf",
-  path = "../plots/endorsement_plot/",
-  width = 8,
-  height = 9
-)
 #png
 ggsave(
   "endorsement_plot.png",
   plot = endorsement_plot,
   device = "png",
-  path = "../plots/endorsement_plot/",
-  width = 8,
-  height = 9
-)
-#jpeg
-ggsave(
-  "endorsement_plot.jpeg",
-  plot = endorsement_plot,
-  device = "jpeg",
-  path = "../plots/endorsement_plot/",
+  path = paste0(plots_path, "endorsement_plot/"),
   width = 8,
   height = 9
 )

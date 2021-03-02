@@ -1,0 +1,1293 @@
+---
+title: Age and sex-related variability in the presentation of anxiety and depression
+  symptoms in the GLAD Study - factor analyses
+author: "Katherine N Thompson"
+date: "10/02/2020"
+output:
+  word_document:
+    toc: yes
+    toc_depth: '2'
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: 2
+    toc_float:
+      collapsed: no
+    number_sections: no
+    highlight: monochrome
+    theme: cerulean
+code_folding: show
+html_notebook:
+  theme: cerulean
+toc: yes
+---
+
+# Set up
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      comment = NA,
+                      prompt = FALSE,
+                      cache = FALSE)
+```
+
+Delete everything in your global environment
+```{r Clear global environment, include=FALSE}
+remove(list = ls())
+```
+
+Packages
+```{r Load packages, include=FALSE}
+library(knitr)
+library(car)
+library(psych)
+library(lubridate)
+library(broom)
+library(summarytools)
+library(data.table)
+library(eeptools)
+library(magrittr)
+library(reshape2)
+library(lavaan)
+library(mlogit)
+library(foreign)
+library(sjPlot)
+library(polycor)
+library(REdaS)
+library(scales)
+library(forcats)
+library(GPArotation)
+library(tidyverse)
+```
+
+Retrieve the recent date
+```{r Recent date, include=FALSE}
+date = Sys.Date()
+```
+
+Define colours for plotting
+```{r GLAD colour palette , include=FALSE}
+palette = c(
+  "#efc00b", #female
+  "#b7dee8"  #male
+  )
+
+palette3 <- c("#78D9C5","#F5BE5E","#EEB6E9")
+```
+
+```{r source data path file}
+source("../data_paths.R")
+```
+
+```{r read in data and check variable names, include=FALSE}
+dat <- readRDS(file = paste0(data_path, "data_formatted.rds"))
+colnames(dat)
+```
+
+# **Preparation for factor analyses**
+
+## Split groups into confirmatory and exploratory 
+```{r split the sample into confirmatory and exploratory}
+# Set seed to make results reproducible
+set.seed(1234)
+#Create training set
+exploratory.group <- dat %>% 
+  sample_frac(
+    size = .70, # Percentage of sample to select
+    replace = FALSE # With or without replacement of individuals (does the same row get sampled repeatedly)
+    )
+dim(exploratory.group) # Check the number of rows and columns
+
+#Create test set
+confirmatory.group  <- anti_join(dat, 
+                                 exploratory.group, 
+                                 by = "ID")
+dim(confirmatory.group) # Check the number of rows and columns
+```
+
+Select the data for EFA and CFA 
+```{r select data for efa and cfa}
+#select data for efa
+data.efa <- exploratory.group %>%
+  dplyr::select(all_of(ALL.items.full))
+
+#check dimenions
+dim(data.efa)
+
+#select data for cfa
+data.cfa <- confirmatory.group %>%
+  dplyr::select(all_of(ALL.items.full))
+
+#check dimensions
+dim(data.cfa)
+```
+
+# **Exploratory factor analysis (EFA)**
+
+## Polychoric correlation matrix
+```{r create data frame for correlation matrix}
+ALL.items.full.df <- as.data.frame(exploratory.group [,ALL.items.full])  #create your dataframe with the items and group that you want
+
+is.data.frame(ALL.items.full.df)  #check that it is now a dataframe (this is important for the factor analysis function as it has problems with tibbles)
+
+colnames(ALL.items.full.df) <- c("Anhedonia",   #Add in the names you would like for your variables
+                                 "Depressed mood", 
+                                 "Sleep change", 
+                                 "Little energy", 
+                                 "Weight or Appetite problems",
+                                 "Worthlessness", 
+                                 "Concentration problems", 
+                                 "Motor problems", 
+                                 "Suicide ideation", 
+                                 "Feeling anxious", 
+                                 "Difficulty controlling worrying", 
+                                 "Worry too much", 
+                                 "Trouble relaxing", 
+                                 "Restlessness", 
+                                 "Irritable", 
+                                 "Feeling afraid")
+head(ALL.items.full.df) #Have a look at the dataframe
+```
+
+## Create polychoric matrix for EFA
+```{r polychoric correlation matrix for EFA}
+# polycor_matrix <- polycor::hetcor(
+#   ALL.items.full.df,
+# #  ML = TRUE, # maximum likelihood calculation (This can take a few minutes to run), include this if you are using ML in FA
+#   use = "pairwise.complete.obs", # Use pairwise complete observations to maximise n
+#   digits = 2 # print two digits after the floating point
+#   )
+# 
+# #save object so no need to re-run
+# saveRDS(polycor_matrix, file = paste0(saved_r_objects_path, "polycor_matrix.rds"))
+polycor_matrix <- readRDS(paste0(saved_r_objects_path, "polycor_matrix.rds"))
+
+polycor_matrix #have a look at the matrix
+```
+
+## Test assumptions for a factor analysis
+
+### Calulating ordinal alpha
+
+Ordinal apla is a reliability statistic that focuses on the reliability of the unobserved continuous variables underlying the observed item responses. It's shown to estimate reliability more accurately than Cronbach’s alpha for binary and ordinal response scales.
+Here you want to look at the "ordinal alpha" as this is a better use than usually Cronbach's alpha which is used for Pearson's correlations. 
+Typically, the alpha for a scale should not be smaller than 0.70 when used for research purposes (Gadermann & Zumbo, 2012)
+```{r calculate Ordinal alpha, KMO and bartletts}
+psych::alpha(
+  polycor_matrix$correlations,
+  check.keys = TRUE) #This is to take into account those variables that are reverse coded/negatively related.
+```
+
+### Kaiser-Meyer-Olkin (KMO) factor adequacy
+
+The KMO is a measure of how suited your data is for Factor Analysis. The test measures sampling adequacy for each variable in the model and for the complete model. Values range from 0-1.
+0 indicates that the sum of partial correlations between variables is large relative to the sum of correlations, indicating diffusion (widely spread) in the pattern of correlations, hence, factor analysis is likely to be inappropriate. 
+A Value close to 1 indicates that patterns of correlations are relatively compact and so factor analysis should yield distinct and reliable factors. Authors reccommend KMO of >0.8 to be mertitorious, and >0.9 to be marvelous (their words not mine)
+```{r KMO}
+psych::KMO(
+  r = polycor_matrix$correlations
+  )
+```
+
+### Bartlett's Test of Sphericity 
+
+Bartlett’s test tells us whether the correlation matrix is significantly different to an identity matrix (if the variables did not correlate at all - the off-diagonal components are 0). If it is significant then it means the correlation variables are overall significantly different from 0. 
+Bartlett's Test of Sphericity is supposed to be significant to run FA. 
+```{r Bartletts sphercity}
+REdaS::bart_spher(
+  polycor_matrix$correlations
+  )
+```
+
+### Multicoliniearity test 
+
+To test for multicollinearity, you can examine the determinant of the R matrix. 
+The determinant (det) of the R matrix should be greater than 0.00001.  
+```{r determinant of correlation matrix}
+det(polycor_matrix$correlations) #determinant of R matrix
+```
+
+## Create heat map to examine correlation coefficients between all the items of PHQ-9 and GAD-7
+
+Use this to look at multicollinearity too. 
+```{r correlation heat map for all items}
+#Get lower triangle of the correlation matrix
+  get_lower_tri <- function(cor_matrix){
+    cor_matrix[upper.tri(cor_matrix)] <- NA
+    return(cor_matrix)
+  }
+
+#Get upper triangle of the correlation matrix
+  get_upper_tri <- function(cor_matrix){
+    cor_matrix[lower.tri(cor_matrix)]<- NA
+    return(cor_matrix)
+  }
+  
+#upper_tri <- get_upper_tri(cor_matrix)
+lower_tri <- get_lower_tri(polycor_matrix$correlations)
+
+reorder_cor_matrix <- function(cor_matrix){
+ #Use correlation between variables as distance
+ dd <- as.dist((1-cor_matrix)/2)
+ hc <- hclust(dd)
+ cormat <-cor_matrix[hc$order, hc$order]
+ }
+
+# Reorder the correlation matrix
+cor_matrix_full <- reorder_cor_matrix(polycor_matrix$correlations)
+lower_tri <- get_lower_tri(cor_matrix_full)
+  
+#melt the values
+metled_cor_matrix <- melt(cor_matrix_full, na.rm = TRUE)
+metled_cor_matrix
+
+#correlation heat map
+correlation_heat_map <- ggplot(metled_cor_matrix, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white",
+   midpoint = 0, limit = c(-1,1), space = "Lab",
+    name="Polychoric\nCorrelation") +
+  theme_minimal() +
+  labs(y = "Items",
+       x = "Items",
+       title = "Correlation heat map for PHQ-9 and GAD-7 items in GLAD",
+       subtitle = paste("n = ", sum(!is.na(dat$PHQ.total.score)),
+                        "; NA = ", sum(is.na(dat$PHQ.total.score)),
+                        "; n(total) = ", length(dat$PHQ.total.score),
+                        "; n(female) = ", sum(!is.na(dat$PHQ.total.score[dat$sex=="Female"])),
+                        "; n(male) = ", sum(!is.na(dat$PHQ.total.score[dat$sex=="Male"])), sep = ""))+
+ theme(axis.text.x = element_text(angle = 45, vjust = 1,
+    size = 12, hjust = 1))+
+ coord_fixed() +
+  geom_text(aes(Var2, Var1, label = round(value, digits = 2)), color = "black", size = 3)
+correlation_heat_map
+
+correlation_heat_map
+
+#save in png
+ggsave(
+  "correlation_heat_map.png",
+  plot = correlation_heat_map,
+  device = "png",
+  path = paste0(plots_path, "correlation_heat_map/"),
+  width = 9,
+  height = 9)
+```
+
+## Polychoric correlation matrix without "worrying too much" item
+
+To decrease multicollinearity - have removed "Worrying too much about different things" that is strongly (0.92) correlated with "Unable to stop or control worrying".  
+```{r polycor matrix without "worrying too much"}
+#create dataframe without worry item
+ALL.items.full.df.withoutworry <- as.data.frame(exploratory.group[,ALL.items.full.withoutworry])
+
+is.data.frame(ALL.items.full.df.withoutworry) #check that it is a dataframe
+#list the column names to be used in the dataframe
+colnames(ALL.items.full.df.withoutworry) <- c("Anhedonia", 
+                                              "Depressed mood", 
+                                              "Sleep change", 
+                                              "Little energy", 
+                                              "Weight or Appetite problems", 
+                                              "Worthlessness", 
+                                              "Concentration problems", 
+                                              "Motor problems", 
+                                              "Suicide ideation", 
+                                              "Feeling anxious", 
+                                              "Difficulty controlling worrying", 
+                                              "Trouble relaxing", 
+                                              "Restlessness", 
+                                              "Irritable", 
+                                              "Feeling afraid")
+ALL.items.full.df.withoutworry
+
+# #create correlation matrix for dataframe without worry item
+# polycor_matrix.withoutworry <- polycor::hetcor(ALL.items.full.df.withoutworry,
+#                                              #  ML = TRUE,
+#                                                use = "pairwise.complete.obs",
+#                                                digits = 2)
+# 
+# #save object so no need to re-run
+# saveRDS(polycor_matrix.withoutworry, file = paste0(saved_r_objects_path, "polycor_matrix.withoutworry.rds"))
+polycor_matrix.withoutworry <- readRDS(paste0(saved_r_objects_path, "polycor_matrix.withoutworry.rds"))
+
+polycor_matrix.withoutworry
+```
+
+## Test assumptions of the correlation matrix wihtout worry item - see above for full description of assumptions
+```{r checking assumptions for without worry matrix}
+#alpha
+psych::alpha(
+  polycor_matrix.withoutworry$correlations,
+  check.keys = TRUE)
+
+#KMO
+psych::KMO(
+  r = polycor_matrix$correlations
+  )
+
+#determinant
+det(polycor_matrix.withoutworry$correlations)
+
+#sphericity 
+REdaS::bart_spher(
+  polycor_matrix.withoutworry$correlations
+  )
+```
+
+## Heat map for polychoric matrix without worry item
+```{r heat map without worry item}
+#upper_tri <- get_upper_tri(cor_matrix)
+lower_tri <- get_lower_tri(polycor_matrix.withoutworry$correlations)
+
+reorder_cor_matrix <- function(cor_matrix){
+ #Use correlation between variables as distance
+ dd <- as.dist((1-cor_matrix)/2)
+ hc <- hclust(dd)
+ cormat <-cor_matrix[hc$order, hc$order]
+ }
+
+# Reorder the correlation matrix
+cor_matrix_full <- reorder_cor_matrix(polycor_matrix.withoutworry$correlations)
+lower_tri <- get_lower_tri(cor_matrix_full)
+  
+#melt the values
+metled_cor_matrix <- melt(cor_matrix_full, na.rm = TRUE)
+metled_cor_matrix
+
+#correlaiton heat map
+correlation_heat_map_without_worry <- ggplot(metled_cor_matrix, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white",
+   midpoint = 0, limit = c(-1,1), space = "Lab",
+    name="Polychoric\nCorrelation") +
+  theme_minimal() +
+  labs(y = "Items",
+       x = "Items",
+       title = "Correlation heat map for PHQ-9 and GAD-7, without worrying too much about different things item",
+       subtitle = paste("n = ", sum(!is.na(dat$PHQ.total.score)),
+                        "; NA = ", sum(is.na(dat$PHQ.total.score)),
+                        "; n(total) = ", length(dat$PHQ.total.score),
+                        "; n(female) = ", sum(!is.na(dat$PHQ.total.score[dat$sex=="Female"])),
+                        "; n(male) = ", sum(!is.na(dat$PHQ.total.score[dat$sex=="Male"])), sep = ""))+
+ theme(axis.text.x = element_text(angle = 45, vjust = 1,
+    size = 12, hjust = 1))+
+ coord_fixed() +
+  geom_text(aes(Var2, Var1, label = round(value, digits = 2)), color = "black", size = 3)
+
+correlation_heat_map_without_worry
+
+#save in png
+ggsave(
+  "correlation_heat_map_without_worry.png",
+  plot = correlation_heat_map_without_worry,
+  device = "png",
+  path = paste0(plots_path, "correlation_heat_map/"),
+  width = 9,
+  height = 9
+)
+```
+
+## Combine two heatmaps together in panel graph - for supplementary material
+
+```{r heat map combined plot}
+library(ggpubr)
+correlation_heat_map <- correlation_heat_map  + 
+  labs(title = "All PhQ-9 and GAD-7 items",
+       subtitle = NULL) + 
+  theme(plot.title = element_text(size = 12,face = "bold"),
+        axis.title.x = element_text(size = 9, face = "bold"),
+        axis.title.y = element_text(size = 9, face = "bold"))
+
+correlation_heat_map_without_worry <- correlation_heat_map_without_worry + 
+  labs(title = "PhQ-9 and GAD-7 items without worry item ",
+       subtitle = NULL) + 
+  theme(plot.title = element_text(size = 12,face = "bold"),
+        axis.title.x = element_text(size = 9, face = "bold"),
+        axis.title.y = element_text(size = 9, face = "bold"))
+  
+correlation_heat_map_combined <- ggarrange(correlation_heat_map, 
+                                           correlation_heat_map_without_worry + font("x.text", size = 10),
+                                           ncol = 2, nrow = 1, labels = c("A", "B"), 
+                                           common.legend = TRUE,
+                                           legend = "right")
+correlation_heat_map_combined
+
+#png
+ggsave(
+  "correlation_heat_map_combined.png",
+  plot = correlation_heat_map_combined,
+  device = "png",
+  path = paste0(plots_path, "correlation_heat_map/"),
+  width = 16,
+  height = 7
+)
+```
+
+## Testing for right amount of factors
+
+### Very Simple Structure (VSS)
+Used to estimate how many factors are in our data. This can then be used as a starting point for our EFA. 
+VSS fits the very simple structure of a factor pattern matrix (correlations between the variables and the factors) to the original correlation matrix.
+```{r EFA very simple structure (VSS)}
+# fa.vss <- psych::vss(x = polycor_matrix$correlations, # Correlation matrix
+#            n = 3, # assumed number of factors
+#            rotate = "oblimin", # Rotation type: oblique or orthogonal
+#            fm = "wls", #factoring method: "wls" = weighted least squares, "mle" = Maximum Likelihood 
+#            n.obs = max(polycor_matrix$n), # number of observations/participants
+#            cor = "poly" # Type of correlation matrix
+#            )
+# 
+# #save object so no need to re-run
+# saveRDS(fa.vss, file = "paste0(saved_r_objects_path,"fa.vss.rds"))
+fa.vss <- readRDS(paste0(saved_r_objects_path,"fa.vss.rds"))
+
+#also gives MAP criterion
+fa.vss
+```
+
+### EFA parallel factors technique
+Used to estimate how many factors are in our data. This can then be used as a starting point for our EFA. 
+Essentially each eigenvalue (which represents the size of the factor) is compared against an eigenvalue for the corresponding factor in many randomly generated data sets that have the same characteristics as the data being analysed.
+```{r EFA parallel factors technique}
+# fa.parallel <- fa.parallel(x = polycor_matrix$correlations, 
+#                                       fm = "wls", #factoring method: "wls" = weighted least squares, "mle" = Maximum Likelihood 
+#                                       nfactors = 3, # assumed number of factors
+#                                       n.iter = 1000, # number of iterations
+#                                       error.bars = T, #include error bars
+#                                       cor = "poly", #polychoric correlations
+#                                       n.obs = max(polycor_matrix$n) # number of participants
+#                                       )
+# #save object so no need to re-run
+# saveRDS(fa.parallel, file = paste0(saved_r_objects_path, "fa.parallel.rds"))
+fa.parallel <- readRDS(paste0(saved_r_objects_path, "fa.parallel.rds"))
+
+fa.parallel 
+#Also gives eigenvalues 
+```
+
+### Very Simple Structure (VSS) - without worry
+Used to estimate how many factors are in our data. This can then be used as a starting point for our EFA. 
+VSS fits the very simple structure of a factor pattern matrix (correlations between the variables and the factors) to the original correlation matrix.
+```{r EFA very simple structure (VSS) - without worry}
+# fa.vss.withoutworry <- psych::vss(x = polycor_matrix.withoutworry$correlations, # Correlation matrix
+#            n = 3, # assumed number of factors
+#            rotate = "oblimin", # Rotation type: oblique or orthogonal
+#            fm = "wls", #factoring method: "wls" = weighted least squares, "mle" = Maximum Likelihood 
+#            n.obs = max(polycor_matrix$n), # number of observations/participants
+#            cor = "poly" # Type of correlation matrix
+#            )
+# 
+# #save object so no need to re-run
+# saveRDS(fa.vss.withoutworry, file = paste0(saved_r_objects_path, "fa.vss.withoutworry.rds"))
+fa.vss.withoutworry <- readRDS(paste0(saved_r_objects_path, "fa.vss.withoutworry.rds"))
+
+#also gives MAP criterion
+fa.vss.withoutworry
+plot(fa.vss.withoutworry)
+```
+
+```{r save vss plot without worry}
+jpeg(
+    filename = paste0(plots_path, "vss.scree.withoutworry.jpeg"),
+    width = 8,
+    height = 7,
+    units = "in",
+    res = 500)
+plot(fa.vss.withoutworry)
+dev.off()
+```
+
+### EFA parallel factors technique - without worry
+Used to estimate how many factors are in our data. This can then be used as a starting point for our EFA. 
+Essentially each eigenvalue (which represents the size of the factor) is compared against an eigenvalue for the corresponding factor in many randomly generated data sets that have the same characteristics as the data being analysed.
+```{r EFA parallel factors technique - without worry}
+# fa.parallel.withoutworry <- fa.parallel(x = polycor_matrix.withoutworry$correlations, 
+#                                       fm = "wls", #factoring method: "wls" = weighted least squares, "mle" = Maximum Likelihood 
+#                                       nfactors = 3, # assumed number of factors
+#                                       n.iter = 1000, # number of iterations
+#                                       error.bars = T, #include error bars
+#                                       cor = "poly", #polychoric correlations
+#                                       n.obs = max(polycor_matrix$n) # number of participants
+#                                       )
+# 
+# #save object so no need to re-run
+# saveRDS(fa.parallel.withoutworry, file = paste0(saved_r_objects_path, "fa.parallel.withoutworry.rds"))
+fa.parallel.withoutworry <- readRDS(paste0(saved_r_objects_path, "fa.parallel.withoutworry.rds"))
+
+fa.parallel.withoutworry
+#Also gives eigenvalues 
+```
+
+```{r save parallel plot without worry}
+jpeg(
+    filename = paste0(plots_path, "parallel.scree.withoutworry.jpeg"),
+    width = 8,
+    height = 7,
+    units = "in",
+    res = 500)
+plot(fa.parallel.withoutworry)
+dev.off()
+```
+
+## EFA model fit 
+EFA run for 1 to 6 factors, both with and without the worry item included. Full model with 16 items included for supplementary material. Model with 15 items presented in results. 
+
+### 1 factor
+```{r psych package EFA 1 factor}
+# polycor.efa.fit1 <- psych::fa(
+#                           r = polycor_matrix$correlations,
+#                           nfactors = 1, #number of factors
+#                           n.obs = max(polycor_matrix$n), #number of observations
+#                           n.iter = 1000, #Number of bootstrap interations to do in fa
+#                           rotate = "oblimin", #allows the factors to be correlated
+#                           fm = "wls", #for normal data - "ml" (maximum likelihood) is preferred, if you have skewed ordinal data, "wls" (weighted least squares) is preferred
+#                           scores = TRUE
+#   )
+# 
+# #save object so no need to re-run
+# saveRDS(polycor.efa.fit1, file = paste0(saved_r_objects_path, "polycor.efa.fit1.rds"))
+polycor.efa.fit1 <- readRDS(paste0(saved_r_objects_path, "polycor.efa.fit1.rds"))
+
+#print the loadings for each factor
+polycor.efa.fit1 
+print(polycor.efa.fit1$loadings, cutoff = 0.3)
+#u2 is uniqueness - unique variance
+#h2 is communality - common variance 
+```
+
+### 1 factor - without worry
+```{r 1b factor model} 
+# polycor.efa.fit1b <- psych::fa(r = polycor_matrix.withoutworry$correlations,
+#                                  nfactors = 1,
+#                                  n.obs = max(polycor_matrix.withoutworry$n),
+#                                  n.iter = 1000, 
+#                                  rotate = "oblimin",
+#                                  fm = "wls")
+# 
+# #save object so no need to re-run
+# saveRDS(polycor.efa.fit1b, file = paste0(saved_r_objects_path, "polycor.efa.fit1b.rds"))
+polycor.efa.fit1b <- readRDS(paste0(saved_r_objects_path, "polycor.efa.fit1b.rds"))
+
+polycor.efa.fit1b 
+print(polycor.efa.fit1b$loadings, cutoff = 0.1)
+fa.diagram(polycor.efa.fit1b)
+```
+
+### 2 factors 
+```{r psych package EFA 2 factors}
+# polycor.efa.fit2 <- psych::fa(
+#                           r = polycor_matrix$correlations,
+#                           nfactors = 2, #number of factors
+#                           n.obs = max(polycor_matrix$n), #number of observations
+#                           n.iter = 1000, #Number of bootstrap interations to do in fa
+#                           rotate = "oblimin", #allows the factors to be correlated
+#                           fm = "wls", #for normal data - "ml" (maximum likelihood) is preferred, if you have skewed ordinal data, "wls" (weighted least squares) is preferred
+#                           scores = TRUE
+#   )
+# 
+# #save object so no need to re-run
+# saveRDS(polycor.efa.fit2, file = paste0(saved_r_objects_path, "polycor.efa.fit2.rds"))
+polycor.efa.fit2 <- readRDS(paste0(saved_r_objects_path, "polycor.efa.fit2.rds"))
+
+#print the loadings for each factor
+polycor.efa.fit2
+print(polycor.efa.fit2$loadings, cutoff = 0.3)
+#u2 is uniqueness - unique variance
+#h2 is communality - common variance 
+```
+
+### 2 factors - without worry
+```{r 2b factor model} 
+# polycor.efa.fit2b <- psych::fa(r = polycor_matrix.withoutworry$correlations,
+#                                  nfactors = 2,
+#                                  n.obs = max(polycor_matrix.withoutworry$n),
+#                                  n.iter = 1000, 
+#                                  rotate = "oblimin",
+#                                  fm = "wls")
+# #save object so no need to re-run
+# saveRDS(polycor.efa.fit2b, file = paste0(saved_r_objects_path, "polycor.efa.fit2b.rds"))
+polycor.efa.fit2b <- readRDS(paste0(saved_r_objects_path, "polycor.efa.fit2b.rds"))
+
+polycor.efa.fit2b 
+print(polycor.efa.fit2b$loadings, cutoff = 0.1)
+fa.diagram(polycor.efa.fit2b)
+```
+
+### 3 factors
+```{r psych package EFA 3 factors}
+# polycor.efa.fit3 <- psych::fa(
+#                           r = polycor_matrix$correlations,
+#                           nfactors = 3, #number of factors
+#                           n.obs = max(polycor_matrix$n), #number of observations
+#                           n.iter = 1000, #Number of bootstrap interations to do in fa
+#                           rotate = "oblimin", #allows the factors to be correlated
+#                           fm = "wls", #for normal data - "ml" (maximum likelihood) is preferred, if you have skewed ordinal data, "wls" (weighted least squares) is preferred
+#                           scores = TRUE
+#   )
+# 
+# #save object so no need to re-run
+# saveRDS(polycor.efa.fit3, file = paste0(saved_r_objects_path, "polycor.efa.fit3.rds"))
+polycor.efa.fit3 <- readRDS(paste0(saved_r_objects_path, "polycor.efa.fit3.rds"))
+
+#print the loadings for each factor
+polycor.efa.fit3
+print(polycor.efa.fit3$loadings, cutoff = 0.3)
+#u2 is uniqueness - unique variance
+#h2 is communality - common variance 
+```
+
+### 3 factors - without worry
+```{r 3b factor model} 
+# polycor.efa.fit3b <- psych::fa(r = polycor_matrix.withoutworry$correlations,
+#                                  nfactors = 3,
+#                                  n.obs = max(polycor_matrix.withoutworry$n),
+#                                  n.iter = 1000, 
+#                                  rotate = "oblimin",
+#                                  fm = "wls")
+
+# saveRDS(polycor.efa.fit3b, file = paste0(saved_r_objects_path, "polycor.efa.fit3b.rds"))
+polycor.efa.fit3b <- readRDS(paste0(saved_r_objects_path, "polycor.efa.fit3b.rds"))
+
+polycor.efa.fit3b
+print(polycor.efa.fit3b$loadings, cutoff = 0.1)
+fa.diagram(polycor.efa.fit3b)
+```
+
+### 4 factors
+```{r psych package EFA 4 factors}
+# polycor.efa.fit4 <- psych::fa(
+#                           r = polycor_matrix$correlations,
+#                           nfactors = 4, #number of factors
+#                           n.obs = max(polycor_matrix$n), #number of observations
+#                           n.iter = 1000, #Number of bootstrap interations to do in fa
+#                           rotate = "oblimin", #allows the factors to be correlated
+#                           fm = "wls", #for normal data - "ml" (maximum likelihood) is preferred, if you have skewed ordinal data, "wls" (weighted least squares) is preferred
+#                           scores = TRUE
+#   )
+# 
+# #save object so no need to re-run
+# saveRDS(polycor.efa.fit4, file = paste0(saved_r_objects_path,"polycor.efa.fit4.rds"))
+polycor.efa.fit4 <- readRDS(paste0(saved_r_objects_path,"polycor.efa.fit4.rds"))
+
+#print the loadings for each factor
+polycor.efa.fit4
+print(polycor.efa.fit4$loadings, cutoff = 0.3)
+#u2 is uniqueness - unique variance
+#h2 is communality - common variance 
+fa.diagram(polycor.efa.fit4)
+```
+
+### 4 factors - without worry
+```{r 4b factor model} 
+# polycor.efa.fit4b <- psych::fa(r = polycor_matrix.withoutworry$correlations,
+#                                  nfactors = 4,
+#                                  n.obs = max(polycor_matrix.withoutworry$n),
+#                                  n.iter = 1000, 
+#                                  rotate = "oblimin",
+#                                  fm = "wls")
+# 
+# #save object so no need to re-run
+# saveRDS(polycor.efa.fit4b, file = paste0(saved_r_objects_path, "polycor.efa.fit4b.rds"))
+polycor.efa.fit4b <- readRDS(paste0(saved_r_objects_path, "polycor.efa.fit4b.rds"))
+
+polycor.efa.fit4b
+print(polycor.efa.fit4b$loadings, cutoff = 0.1)
+fa.diagram(polycor.efa.fit4b)
+```
+
+### 5 factors
+```{r psych package EFA 5 factors}
+# polycor.efa.fit5 <- psych::fa(
+#                           r = polycor_matrix$correlations,
+#                           nfactors = 5, #number of factors
+#                           n.obs = max(polycor_matrix$n), #number of observations
+#                           n.iter = 1000, #Number of bootstrap interations to do in fa
+#                           rotate = "oblimin", #allows the factors to be correlated
+#                           fm = "wls", #for normal data - "ml" (maximum likelihood) is preferred, if you have skewed ordinal data, "wls" (weighted least squares) is preferred
+#                           scores = TRUE
+#   )
+# 
+# #save object so no need to re-run
+# saveRDS(polycor.efa.fit5, file = paste0(saved_r_objects_path,"polycor.efa.fit5.rds"))
+polycor.efa.fit5 <- readRDS(paste0(saved_r_objects_path,"polycor.efa.fit5.rds"))
+
+#print the loadings for each factor
+polycor.efa.fit5
+print(polycor.efa.fit5$loadings, cutoff = 0.3)
+psych::fa.diagram(polycor.efa.fit5)
+#u2 is uniqueness - unique variance
+#h2 is communality - common variance 
+```
+
+### 5 factors - without worry
+```{r 5b factor model} 
+# polycor.efa.fit5b <- psych::fa(r = polycor_matrix.withoutworry$correlations,
+#                                  nfactors = 5,
+#                                  n.obs = max(polycor_matrix.withoutworry$n),
+#                                  n.iter = 1000, 
+#                                  rotate = "oblimin",
+#                                  fm = "wls")
+# 
+# #save object so no need to re-run
+# saveRDS(polycor.efa.fit5b, file = paste0(saved_r_objects_path, "polycor.efa.fit5b.rds"))
+polycor.efa.fit5b <- readRDS(paste0(saved_r_objects_path, "polycor.efa.fit5b.rds"))
+
+polycor.efa.fit5b
+print(polycor.efa.fit5b$loadings, cutoff = 0.1)
+fa.diagram(polycor.efa.fit5b)
+```
+
+### 6 factors
+```{r psych package EFA 6 factors}
+# polycor.efa.fit6 <- psych::fa(
+#                           r = polycor_matrix$correlations,
+#                           nfactors = 6, #number of factors
+#                           n.obs = max(polycor_matrix$n), #number of observations
+#                           n.iter = 1000, #Number of bootstrap interations to do in fa
+#                           rotate = "oblimin", #allows the factors to be correlated
+#                           fm = "wls", #for normal data - "ml" (maximum likelihood) is preferred, if you have skewed ordinal data, "wls" (weighted least squares) is preferred
+#                           scores = TRUE
+#   )
+# 
+# #save object so no need to re-run
+# saveRDS(polycor.efa.fit6, file = paste0(saved_r_objects_path,"polycor.efa.fit6.rds"))
+polycor.efa.fit6 <- readRDS(paste0(saved_r_objects_path,"polycor.efa.fit6.rds"))
+
+#print the loadings for each factor
+polycor.efa.fit6
+print(polycor.efa.fit6$loadings, cutoff = 0.3)
+#u2 is uniqueness - unique variance
+#h2 is communality - common variance 
+fa.diagram(polycor.efa.fit6)
+```
+
+### 6 factors - without worry
+```{r 6b factor model} 
+# polycor.efa.fit6b <- psych::fa(r = polycor_matrix.withoutworry$correlations,
+#                                  nfactors = 6,
+#                                  n.obs = max(polycor_matrix.withoutworry$n),
+#                                  n.iter = 1000, 
+#                                  rotate = "oblimin",
+#                                  fm = "wls")
+# 
+# #save object so no need to re-run
+# saveRDS(polycor.efa.fit6b, file = paste0(saved_r_objects_path, "polycor.efa.fit6b.rds"))
+polycor.efa.fit6b <- readRDS(paste0(saved_r_objects_path, "polycor.efa.fit6b.rds"))
+
+polycor.efa.fit6b
+print(polycor.efa.fit6b$loadings, cutoff = 0.1)
+fa.diagram(polycor.efa.fit6b)
+```
+
+## Plot EFA with 4 factors - without "worrying too much" item
+
+### Path diagram 
+The EFA path diagram used in the paper will be reconstructed in Biorender to create flush labels and paths. 
+```{r EFA diagram for factor 4b model - path diagram, fig.height = 3}
+#name the factors
+colnames(polycor.efa.fit4b$loadings) <- c("Worry symptoms",
+                                          "Mood symptoms",
+                                         "Somatic symptoms",
+                                         "Motor symptoms")
+#create diagram
+library(psych)
+efa_plot_withoutworry <- fa.diagram(polycor.efa.fit4b, 
+           e.size = 0.05, 
+           rsize = 0.4, 
+           digits = 2, 
+           sort = TRUE, 
+           adj = 2, 
+           cex = 1
+          )
+```
+
+### Factor loadings diagram
+```{r EFA diagram for factor 4b model}
+## other fa plot 
+#create data frame with loadings
+loadings <- as.data.frame(unclass(polycor.efa.fit4b$loadings))
+  
+#create item variable         
+loadings$Item <- c("Anhedonia",   #Add in the names you would like for your variables
+                                 "Depressed mood", 
+                                 "Sleep change", 
+                                 "Little energy", 
+                                 "Weight or Appetite problems",
+                                 "Worthlessness", 
+                                 "Concentration problems", 
+                                 "Motor problems", 
+                                 "Suicide ideation", 
+                                 "Feeling anxious", 
+                                 "Difficulty controlling worrying",
+                                 "Trouble relaxing", 
+                                 "Restlessness", 
+                                 "Irritable", 
+                                 "Feeling afraid") 
+#order item variable
+Order <- c("Suicide ideation", 
+           "Depressed mood",
+           "Worthlessness", 
+           "Anhedonia",
+           "Concentration problems",
+           "Difficulty controlling worrying",
+           "Feeling anxious", 
+           "Feeling afraid",
+           "Trouble relaxing",
+           "Irritable",
+           "Little energy",
+           "Sleep change", 
+            "Weight or Appetite problems",
+            "Restlessness",
+           "Motor problems")
+
+loadings$Item <- factor(loadings$Item, levels = paste(Order, sep = ","))
+
+loadings.m <- melt(loadings, id = "Item",
+                   measure=c("Worry symptoms", "Mood symptoms", 
+                             "Somatic symptoms", "Motor symptoms"), 
+                   variable.name="Factor", value.name="Loading")
+
+
+efa_plot <- ggplot(loadings.m, aes(Item, abs(Loading), fill=Loading)) + 
+  facet_wrap(~ Factor, nrow = 1) + #place the factors in separate facets
+  geom_bar(stat = "identity") + #make the bars
+  coord_flip() + #flip the axes so the test names can be horizontal  
+  #define the fill color gradient: blue=positive, red=negative
+  scale_fill_gradient2(name = "Loading", 
+                       high = "blue", mid = "white", low = "red", 
+                       midpoint = 0, guide = F) +
+  ylab("Loading Strength") + #improve y-axis label
+  theme_bw(base_size = 10) #use a black-and0white theme with set font size
+efa_plot
+
+#png
+ggsave(
+  "efa_plot.png",
+  plot = efa_plot,
+  device = "png",
+  path = paste0(plots_path,"/efa/"),
+  width = 7,
+  height = 6
+)
+```
+
+### EFA panel factor loadings plot with blank space for Biorender plot to be added in 
+
+```{r combined efa plot}
+library(ggplot2)
+efa_plot_combined <- ggarrange(efa_plot_withoutworry, efa_plot  + font("x.text", size = 10),
+                    ncol = 2, nrow = 1, labels = c("A", "B"))
+
+efa_plot_combined
+
+#png
+ggsave(
+  "efa.final_template.png",
+  plot = efa_plot_combined,
+  device = "png",
+  path = paste0(plots_path,"efa/"),
+  width = 14,
+  height = 6)
+```
+
+# **Sensitivity analysis: EFA with concentration problems dropped**
+
+## Polychoric correlation matrix without concentration item
+```{r polycor matrix without concentration}
+#create dataframe without worry and concentration items
+ALL.items.full.df.withoutconcentration <- as.data.frame(exploratory.group [,ALL.items.full.withoutconcentration])
+
+is.data.frame(ALL.items.full.df.withoutconcentration) #check that it is a dataframe
+#list the column names to be used in the dataframe
+colnames(ALL.items.full.df.withoutconcentration) <- c("Anhedonia", 
+                                                    "Depressed mood", 
+                                                    "Sleep change", 
+                                                    "Little energy", 
+                                                    "Weight or Appetite problems", 
+                                                    "Worthlessness", 
+                                                    "Motor problems", 
+                                                    "Suicide ideation", 
+                                                    "Feeling anxious", 
+                                                    "Difficulty controlling worrying", 
+                                                    "Trouble relaxing", 
+                                                    "Restlessness", 
+                                                    "Irritable", 
+                                                    "Feeling afraid")
+ALL.items.full.df.withoutconcentration
+
+# #create correlation matrix for dataframe without worry and concentration items
+# polycor_matrix.withoutconcentration <- polycor::hetcor(ALL.items.full.df.withoutconcentration,
+#                                              #  ML = TRUE,
+#                                                use = "pairwise.complete.obs",
+#                                                digits = 2)
+# 
+# #save object so no need to re-run
+# saveRDS(polycor_matrix.withoutconcentration, file = paste0(saved_r_objects_path, "polycor_matrix.withoutconcentration.rds"))
+polycor_matrix.withoutconcentration <- readRDS(paste0(saved_r_objects_path, "polycor_matrix.withoutconcentration.rds"))
+
+polycor_matrix.withoutconcentration
+```
+
+##  EFA without worry and concentration item
+```{r efa without worry and concentration item}
+# polycor.efa.fit4b.without_concentration <- psych::fa(r = polycor_matrix.withoutconcentration$correlations,
+#                                  nfactors = 4,
+#                                  n.obs = max(polycor_matrix.withoutconcentration$n),
+#                                  n.iter = 1000, 
+#                                  rotate = "oblimin",
+#                                  fm = "wls")
+# 
+# #save object so no need to re-run
+# saveRDS(polycor.efa.fit4b.without_concentration, file = paste0(saved_r_objects_path,"polycor.efa.fit4b.without_concentration.rds"))
+polycor.efa.fit4b.without_concentration <- readRDS(paste0(saved_r_objects_path,"polycor.efa.fit4b.without_concentration.rds"))
+
+
+polycor.efa.fit4b.without_concentration
+print(polycor.efa.fit4b.without_concentration$loadings, cutoff = 0.1)
+fa.diagram(polycor.efa.fit4b.without_concentration)
+```
+
+# **Sensitivity analysis: EFA with concentration problems and irritability dropped**
+## Polychoric correlation matrix without concentration AND irritability items
+```{r polycor matrix without concentration and irritability}
+#create dataframe without worry, concentration and irritability items
+ALL.items.full.df.withoutirritability <- as.data.frame(exploratory.group [,ALL.items.full.withoutirritability])
+
+is.data.frame(ALL.items.full.df.withoutirritability) #check that it is a dataframe
+#list the column names to be used in the dataframe
+colnames(ALL.items.full.df.withoutirritability) <- c("Anhedonia", 
+                                                    "Depressed mood", 
+                                                    "Sleep change", 
+                                                    "Little energy", 
+                                                    "Weight or Appetite problems", 
+                                                    "Worthlessness", 
+                                                    "Motor problems", 
+                                                    "Suicide ideation", 
+                                                    "Feeling anxious", 
+                                                    "Difficulty controlling worrying", 
+                                                    "Trouble relaxing", 
+                                                    "Restlessness",
+                                                    "Feeling afraid")
+ALL.items.full.df.withoutirritability
+
+# #create correlation matrix for dataframe without worry and concentration items
+# polycor_matrix.withoutirritability <- polycor::hetcor(ALL.items.full.df.withoutirritability,
+#                                              #  ML = TRUE,
+#                                                use = "pairwise.complete.obs",
+#                                                digits = 2)
+# 
+# #save object so no need to re-run
+# saveRDS(polycor_matrix.withoutirritability, file = paste0(saved_r_objects_path, "polycor_matrix.withoutirritability.rds"))
+polycor_matrix.withoutirritability <- readRDS(paste0(saved_r_objects_path, "polycor_matrix.withoutirritability.rds"))
+
+polycor_matrix.withoutirritability
+```
+
+## Run EFA without worry, concentration and irritability item
+```{r efa without worry,concentration and irritability item}
+# polycor.efa.fit4b.without_irritability <- psych::fa(r = polycor_matrix.withoutirritability$correlations,
+#                                  nfactors = 4,
+#                                  n.obs = max(polycor_matrix.withoutirritability$n),
+#                                  n.iter = 1000, 
+#                                  rotate = "oblimin",
+#                                  fm = "wls")
+# 
+# #save object so no need to re-run
+# saveRDS(polycor.efa.fit4b.without_irritability, file = paste0(saved_r_objects_path,"polycor.efa.fit4b.without_irritability.rds"))
+polycor.efa.fit4b.without_irritability <- readRDS(paste0(saved_r_objects_path,"polycor.efa.fit4b.without_irritability.rds"))
+
+polycor.efa.fit4b.without_irritability
+print(polycor.efa.fit4b.without_irritability$loadings, cutoff = 0.1)
+fa.diagram(polycor.efa.fit4b.without_irritability)
+```
+
+**Comments: Decided that excluding both concentration problems does not improve fit.**
+
+# **Sensitivity analysis: Rerun 4 factor model (without worry) in males and females separately**
+## Polychoric matrix for females 
+```{r polycor matrix for females}
+#create dataframe without worry item
+ALL.items.full.df.withoutworry.female <- as.data.frame(data.female [,ALL.items.full.withoutworry])
+
+is.data.frame(ALL.items.full.df.withoutworry.female) #check that it is a dataframe
+#list the column names to be used in the dataframe
+colnames(ALL.items.full.df.withoutworry.female) <- c("Anhedonia", 
+                                                    "Depressed mood", 
+                                                    "Sleep change", 
+                                                    "Little energy", 
+                                                    "Weight or Appetite problems", 
+                                                    "Worthlessness", 
+                                                    "Concentration problems", 
+                                                    "Motor problems", 
+                                                    "Suicide ideation", 
+                                                    "Feeling anxious", 
+                                                    "Difficulty controlling worrying", 
+                                                    "Trouble relaxing", 
+                                                    "Restlessness", 
+                                                    "Irritable", 
+                                                    "Feeling afraid")
+ALL.items.full.df.withoutworry.female
+
+# #create correlation matrix for dataframe without worry item
+# polycor_matrix.withoutworry.female <- polycor::hetcor(ALL.items.full.df.withoutworry.female,
+#                                              #  ML = TRUE,
+#                                                use = "pairwise.complete.obs",
+#                                                digits = 2)
+# 
+# #save object so no need to re-run
+# saveRDS(polycor_matrix.withoutworry.female, file = paste0(saved_r_objects_path, "polycor_matrix.withoutworry.female.rds"))
+polycor_matrix.withoutworry.female <- readRDS(paste0(saved_r_objects_path, "polycor_matrix.withoutworry.female.rds"))
+
+polycor_matrix.withoutworry.female
+```
+
+## Polychoric matrix for males 
+```{r polycor matrix for males}
+#create dataframe without worry item
+ALL.items.full.df.withoutworry.male <- as.data.frame(data.male [,ALL.items.full.withoutworry])
+
+is.data.frame(ALL.items.full.df.withoutworry.male) #check that it is a dataframe
+#list the column names to be used in the dataframe
+colnames(ALL.items.full.df.withoutworry.male) <- c("Anhedonia", 
+                                                  "Depressed mood", 
+                                                  "Sleep change", 
+                                                  "Little energy", 
+                                                  "Weight or Appetite problems", 
+                                                  "Worthlessness", 
+                                                  "Concentration problems", 
+                                                  "Motor problems", 
+                                                  "Suicide ideation", 
+                                                  "Feeling anxious", 
+                                                  "Difficulty controlling worrying", 
+                                                  "Trouble relaxing", 
+                                                  "Restlessness", 
+                                                  "Irritable", 
+                                                  "Feeling afraid")
+ALL.items.full.df.withoutworry.male
+
+# #create correlation matrix for dataframe without worry item
+# polycor_matrix.withoutworry.male <- polycor::hetcor(ALL.items.full.df.withoutworry.male,
+#                                              #  ML = TRUE,
+#                                                use = "pairwise.complete.obs",
+#                                                digits = 2)
+# #save object so no need to re-run
+# saveRDS(polycor_matrix.withoutworry.male, file = paste0(saved_r_objects_path, "polycor_matrix.withoutworry.male.rds"))
+polycor_matrix.withoutworry.male <- readRDS(paste0(saved_r_objects_path, "polycor_matrix.withoutworry.male.rds"))
+
+polycor_matrix.withoutworry.male
+```
+
+## Run EFA for males and females separately
+```{r efa for males and females separately}
+# #females
+# polycor.efa.fit4b.female <- psych::fa(r = polycor_matrix.withoutworry.female$correlations,
+#                                  nfactors = 4,
+#                                  n.obs = max(polycor_matrix.withoutworry.female$n),
+#                                  n.iter = 1000, 
+#                                  rotate = "oblimin",
+#                                  fm = "wls")
+# 
+# #save object so no need to re-run
+# saveRDS(polycor.efa.fit4b.female, file = paste0(saved_r_objects_path,"polycor.efa.fit4b.female.rds"))
+polycor.efa.fit4b.female <- readRDS(paste0(saved_r_objects_path,"polycor.efa.fit4b.female.rds"))
+
+polycor.efa.fit4b.female
+print(polycor.efa.fit4b.female$loadings, cutoff = 0.1)
+fa.diagram(polycor.efa.fit4b.female,
+           e.size = 0.05, 
+           rsize = 0.4, 
+           digits = 2, 
+           sort = TRUE, 
+           adj = 2, 
+           cex = 1)
+
+# #males
+# polycor.efa.fit4b.male <- psych::fa(r = polycor_matrix.withoutworry.male$correlations,
+#                                  nfactors = 4,
+#                                  n.obs = max(polycor_matrix.withoutworry.male$n),
+#                                  n.iter = 1000, 
+#                                  rotate = "oblimin",
+#                                  fm = "wls")
+# 
+# #save object so no need to re-run
+# saveRDS(polycor.efa.fit4b.male, file = paste0(saved_r_objects_path,"polycor.efa.fit4b.male.rds"))
+polycor.efa.fit4b.male <- readRDS(paste0(saved_r_objects_path,"polycor.efa.fit4b.male.rds"))
+
+polycor.efa.fit4b.male
+print(polycor.efa.fit4b.male$loadings, cutoff = 0.1)
+fa.diagram(polycor.efa.fit4b.male,
+           e.size = 0.05, 
+           rsize = 0.4, 
+           digits = 2, 
+           sort = TRUE, 
+           adj = 2, 
+           cex = 1)
+```
+
+```{r efa plot in males and females}
+library(ggplot2)
+efa_plot_male_female <- ggarrange(efa_plot_withoutworry,  #used to create a blank panel plot to add biorender graphs over the top for paper.
+                                  efa_plot_withoutworry  + 
+                                    font("x.text", 
+                                         size = 10),
+                                  ncol = 2, 
+                                  nrow = 1, 
+                                  labels = c("A", "B"))
+
+efa_plot_male_female
+
+#png
+ggsave(
+  "efa_plot_male_female.template.png",
+  plot = efa_plot_male_female,
+  device = "png",
+  path = paste0(plots_path, "efa/"),
+  width = 14,
+  height = 6
+)
+```
+
+# **Confirmatory factor analysis (CFA)**
+**Used the 4b factor model (without worry item) from the EFA to replicate in the remaining 30% of the sample.** 
+
+## **CHOSEN** 4b factor model
+### Define **CHOSEN** latent factors for 4 factor model - without worry item 
+```{r define cfa model based on cfa 4b fatcor model}
+cfa.model4b <- 'worry =~ 
+              gad.control_worrying_numeric + 
+              gad.feeling_anxious_numeric + 
+              gad.feeling_afraid_numeric + 
+              gad.trouble_relaxing_numeric + 
+              gad.irritable_numeric
+
+              mood =~ phq.depressed_mood_numeric + 
+              phq.suicide_ideation_numeric + 
+              phq.anhedonia_numeric + 
+              phq.worthlessness_numeric + 
+              phq.concentration_problems_numeric
+
+              somatic =~ phq.little_energy_numeric + 
+              phq.sleep_change_numeric + 
+              phq.eating_problems_numeric 
+
+              motor =~ gad.restless_numeric + 
+              phq.motor_problems_numeric 
+              '
+```
+
+### Run the CFA for the 4b factor model - without worry
+```{r run 4b cfa}
+cfa.model4b.fit <- cfa(cfa.model4b, 
+                      data = confirmatory.group, 
+                      ordered = c("phq.anhedonia_numeric",
+                                   "phq.depressed_mood_numeric",
+                                   "phq.sleep_change_numeric",
+                                   "phq.little_energy_numeric",
+                                   "phq.eating_problems_numeric",
+                                   "phq.worthlessness_numeric",
+                                   "phq.concentration_problems_numeric",
+                                   "phq.motor_problems_numeric",
+                                   "phq.suicide_ideation_numeric",
+                                   "gad.feeling_anxious_numeric",
+                                   "gad.control_worrying_numeric",
+                                   "gad.trouble_relaxing_numeric", 
+                                   "gad.restless_numeric", 
+                                   "gad.irritable_numeric",
+                                   "gad.feeling_afraid_numeric"))
+```
+
+### Summary stats for the 4b factor model - without worry
+```{r fit statistics for cfa 4b}
+summary(cfa.model4b.fit, fit.measures = TRUE)
+```
+
+# **Rerun CHOSEN CFA 4b model (without worry) in the whole sample to create factor scores for all participants.** 
+
+```{r finalised cfa}
+#Define model - here have taken the full 4 factor model
+cfa.model.final <- 'worry =~ 
+              gad.control_worrying_numeric + 
+              gad.feeling_anxious_numeric + 
+              gad.feeling_afraid_numeric + 
+              gad.trouble_relaxing_numeric + 
+              gad.irritable_numeric
+
+              mood =~ phq.depressed_mood_numeric + 
+              phq.suicide_ideation_numeric + 
+              phq.anhedonia_numeric + 
+              phq.worthlessness_numeric + 
+              phq.concentration_problems_numeric
+
+              somatic =~ phq.little_energy_numeric + 
+              phq.sleep_change_numeric + 
+              phq.eating_problems_numeric 
+
+              motor =~ gad.restless_numeric + 
+              phq.motor_problems_numeric 
+              '
+#run cfa for this model in whole sample
+cfa.model.fit.final <- cfa(cfa.model.final, 
+                      data = dat, 
+                      ordered = c("phq.anhedonia_numeric",
+                                   "phq.depressed_mood_numeric",
+                                   "phq.sleep_change_numeric",
+                                   "phq.little_energy_numeric",
+                                   "phq.eating_problems_numeric",
+                                   "phq.worthlessness_numeric",
+                                   "phq.concentration_problems_numeric",
+                                   "phq.motor_problems_numeric",
+                                   "phq.suicide_ideation_numeric",
+                                   "gad.feeling_anxious_numeric",
+                                   "gad.control_worrying_numeric",
+                                   "gad.trouble_relaxing_numeric", 
+                                   "gad.restless_numeric", 
+                                   "gad.irritable_numeric",
+                                   "gad.feeling_afraid_numeric"))
+
+summary(cfa.model.fit.final, fit.measures = TRUE)
+```
+
+# **Factor Scores**
+Use the CFA to create factor scores for each participant -using the final cfa model
+```{r calculating factor scores for full model}
+# factor_scores <- lavPredict(
+#   object = cfa.model.fit.final, # model of the original CFA
+#   newdata = dat, # data frame with the whole data
+#   type = "fy",
+#   method = "ML", # "EBM" Empirical Bayes Model or "ML" maximum likelihood are suggested for ordinal data
+# #  se = "standard", # standard standard errors are calculated
+#   label = TRUE,
+#   ETA = ALL.items.full.withoutworry
+#  # append.data = TRUE # append data frame and factor scores
+#   )
+
+# #save object so no need to re-run
+# saveRDS(factor_scores, file = "../saved_r_objects/factor_scores.rds")
+factor_scores <- readRDS(paste0(saved_r_objects_path, "factor_scores.rds"))
+
+dim(factor_scores)
+head(factor_scores)
+describe(factor_scores)
+```
+
+Bind the factor scores to the dataframe
+```{r bind the factor scores to the dataframe}
+dat <- cbind(
+  dat, 
+  factor_scores)
+```
+
+# Save data
+
+```{r save data file}
+# save R data file
+saveRDS(object = dat, file = paste0(data_path, "data_formatted.rds"))
+```
+
+
+
+
+
+
+
+
+
