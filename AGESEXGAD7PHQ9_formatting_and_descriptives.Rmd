@@ -1,0 +1,1048 @@
+---
+title: Age and sex-related variability in the presentation of anxiety and depression
+  symptoms in the GLAD Study - formatting and descriptives. 
+author: "Katherine N Thompson"
+date: "10/02/2020"
+output:
+  word_document:
+    toc: yes
+    toc_depth: '2'
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: 2
+    toc_float:
+      collapsed: no
+    number_sections: no
+    highlight: monochrome
+    theme: cerulean
+code_folding: show
+html_notebook:
+  theme: cerulean
+toc: yes
+---
+
+# Set up
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      comment = NA,
+                      prompt = FALSE,
+                      cache = FALSE)
+```
+
+Delete everything in your global environment
+```{r Clear global environment, include=FALSE}
+remove(list = ls())
+```
+
+Packages
+```{r Load packages, include=FALSE}
+library(knitr)
+library(car)
+library(psych)
+library(lubridate)
+library(broom)
+library(summarytools)
+library(data.table)
+library(eeptools)
+library(magrittr)
+library(reshape2)
+library(lavaan)
+library(mlogit)
+library(foreign)
+library(sjPlot)
+library(polycor)
+library(REdaS)
+library(scales)
+library(forcats)
+library(GPArotation)
+library(tidyverse)
+```
+
+Retrieve the recent date
+```{r Recent date, include=FALSE}
+date = Sys.Date()
+```
+
+Define colours for plotting
+```{r GLAD colour palette , include=FALSE}
+palette = c(
+  "#efc00b", #female
+  "#b7dee8"  #male
+  )
+
+palette3 <- c("#78D9C5","#F5BE5E","#EEB6E9")
+```
+
+```{r source data path file}
+source("../data_paths.R")
+```
+
+Read in demographics
+```{r read in demographic data, include=FALSE}
+data.dem.raw <- readRDS(paste0(data.raw_path, "DEM.rds"))
+dim(data.dem.raw)
+colnames(data.dem.raw)
+data.dem.raw$birthyear <- NULL
+data.dem.raw$startdate <- NULL
+data.dem.raw$enddate <- NULL
+colnames(data.dem.raw)
+```
+
+Read in self report mental health disorders
+```{r Read in self report mental health disorders, include=FALSE}
+data.mhd.raw <- readRDS(paste0(data.raw_path, "MHD.rds"))
+dim(data.mhd.raw)
+colnames(data.mhd.raw)
+data.mhd.raw$sex <- NULL
+data.mhd.raw$age <- NULL
+data.mhd.raw$birthyear <- NULL
+data.mhd.raw$startdate <- NULL
+data.mhd.raw$enddate <- NULL
+colnames(data.mhd.raw)
+```
+
+Read in PHQ9
+```{r Read in PHQ, include=FALSE}
+data.phq.raw <- readRDS(paste0(data.raw_path, "PHQ.rds"))
+dim(data.phq.raw)
+colnames(data.phq.raw)
+data.phq.raw$sex <- NULL
+data.phq.raw$age <- NULL
+data.phq.raw$birthyear <- NULL
+data.phq.raw$startdate <- NULL
+data.phq.raw$enddate <- NULL
+colnames(data.phq.raw)
+```
+
+Read in GAD7
+```{r Read in GAD7, include=FALSE}
+data.gad.raw <- readRDS(paste0(data.raw_path, "GAD.rds"))
+dim(data.gad.raw)
+colnames(data.gad.raw)
+data.gad.raw$sex <- NULL
+data.gad.raw$age <- NULL
+data.gad.raw$birthyear <- NULL
+data.gad.raw$startdate <- NULL
+data.gad.raw$enddate <- NULL
+colnames(data.gad.raw)
+```
+
+## Prepare item lists
+```{r prepare item groups, include=FALSE}
+# All the items in numeric form
+ALL.items.full_numeric <- c("phq.anhedonia_numeric",
+             "phq.depressed_mood_numeric",
+             "phq.sleep_change_numeric",
+             "phq.little_energy_numeric",
+             "phq.eating_problems_numeric",
+             "phq.worthlessness_numeric",
+             "phq.concentration_problems_numeric",
+             "phq.motor_problems_numeric",
+             "phq.suicide_ideation_numeric",
+             "gad.feeling_anxious_numeric",
+             "gad.control_worrying_numeric",
+             "gad.worry_toomuch_numeric",
+             "gad.trouble_relaxing_numeric", 
+             "gad.restless_numeric", 
+             "gad.irritable_numeric",
+             "gad.feeling_afraid_numeric")
+
+# All the items as factors
+ALL.items.full <- c("phq.anhedonia",
+             "phq.depressed_mood",
+             "phq.sleep_change",
+             "phq.little_energy",
+             "phq.eating_problems",
+             "phq.worthlessness",
+             "phq.concentration_problems",
+             "phq.motor_problems",
+             "phq.suicide_ideation",
+             "gad.feeling_anxious",
+             "gad.control_worrying",
+             "gad.worry_toomuch",
+             "gad.trouble_relaxing", 
+             "gad.restless", 
+             "gad.irritable",
+             "gad.feeling_afraid")
+
+# Create vector with items that are included in total score
+GAD.items = c("gad.feeling_anxious_numeric",
+              "gad.control_worrying_numeric",
+              "gad.worry_toomuch_numeric",
+              "gad.trouble_relaxing_numeric",
+              "gad.restless_numeric",
+              "gad.irritable_numeric",
+              "gad.feeling_afraid_numeric")
+
+# Create vector with items that are included in total score
+PHQ.items = c("phq.anhedonia_numeric",
+              "phq.depressed_mood_numeric",
+              "phq.sleep_change_numeric",
+              "phq.little_energy_numeric",
+              "phq.eating_problems_numeric",
+              "phq.worthlessness_numeric",
+              "phq.concentration_problems_numeric",
+              "phq.motor_problems_numeric",
+              "phq.suicide_ideation_numeric")
+
+# list of categorical items
+cat.items <- c("phq.anhedonia.cat",
+             "phq.depressed_mood.cat",       
+             "phq.sleep_change.cat",
+             "phq.little_energy.cat",
+             "phq.eating_problems.cat",
+             "phq.worthlessness.cat",
+             "phq.concentration_problems.cat",
+             "phq.motor_problems.cat",
+             "phq.suicide_ideation.cat",
+             "gad.feeling_anxious.cat",
+             "gad.control_worrying.cat",
+             "gad.worry_toomuch.cat",
+             "gad.trouble_relaxing.cat", 
+             "gad.restless.cat", 
+             "gad.irritable.cat",
+             "gad.feeling_afraid.cat")
+
+# categorical items labeled for endorsement plot 
+cat.items.labelled <- c("phq.anhedonia.cat.labelled",
+             "phq.depressed_mood.cat.labelled",       
+             "phq.sleep_change.cat.labelled",
+             "phq.little_energy.cat.labelled",
+             "phq.eating_problems.cat.labelled",
+             "phq.worthlessness.cat.labelled",
+             "phq.concentration_problems.cat.labelled",
+             "phq.motor_problems.cat.labelled",
+             "phq.suicide_ideation.cat.labelled",
+             "gad.feeling_anxious.cat.labelled",
+             "gad.control_worrying.cat.labelled",
+             "gad.worry_toomuch.cat.labelled",
+             "gad.trouble_relaxing.cat.labelled", 
+             "gad.restless.cat.labelled", 
+             "gad.irritable.cat.labelled",
+             "gad.feeling_afraid.cat.labelled")
+
+# create data frame that doesn't include "worrying too much" item
+ALL.items.full.withoutworry <- c("phq.anhedonia",
+                                 "phq.depressed_mood",
+                                 "phq.sleep_change",
+                                 "phq.little_energy",
+                                 "phq.eating_problems",
+                                 "phq.worthlessness",
+                                 "phq.concentration_problems",
+                                 "phq.motor_problems",
+                                 "phq.suicide_ideation",
+                                 "gad.feeling_anxious",
+                                 "gad.control_worrying",
+                                 "gad.trouble_relaxing", 
+                                 "gad.restless", 
+                                 "gad.irritable",
+                                 "gad.feeling_afraid")
+
+# create data frame that doesn't include "concentration problems" item
+ALL.items.full.withoutconcentration <- c("phq.anhedonia",
+                                 "phq.depressed_mood",
+                                 "phq.sleep_change",
+                                 "phq.little_energy",
+                                 "phq.eating_problems",
+                                 "phq.worthlessness",
+                                 "phq.motor_problems",
+                                 "phq.suicide_ideation",
+                                 "gad.feeling_anxious",
+                                 "gad.control_worrying",
+                                 "gad.trouble_relaxing", 
+                                 "gad.restless", 
+                                 "gad.irritable",
+                                 "gad.feeling_afraid")
+
+# create data frame that doesn't include "concentration problems" and "irritability" item
+ALL.items.full.withoutirritability <- c("phq.anhedonia",
+                                 "phq.depressed_mood",
+                                 "phq.sleep_change",
+                                 "phq.little_energy",
+                                 "phq.eating_problems",
+                                 "phq.worthlessness",
+                                 "phq.motor_problems",
+                                 "phq.suicide_ideation",
+                                 "gad.feeling_anxious",
+                                 "gad.control_worrying",
+                                 "gad.trouble_relaxing", 
+                                 "gad.restless",
+                                 "gad.feeling_afraid")
+
+# continuous variables for descriptives
+continuous.variables <- c("PHQ.total.score", 
+                          "GAD.total.score", 
+                          "age")
+```
+
+PHQ and GAD scoring keys
+Create vector with scoring key: If the item is reversed coded use -1. There needs to be the correct number of values for each item in the questionnaire.
+
+```{r PHQ and GAD scoring keys, include=FALSE}
+# PHQ
+PHQ.n.items = 9 # total number of items of the questionnaire
+PHQ.items.key <- c(1,1,1,1,1,1,1,1,1) # scoring key
+
+# GAD
+GAD.n.items = 7 # total number of items of the questionnaire
+GAD.items.key <- c(1,1,1,1,1,1,1) # scoring key
+```
+
+# Missingness {.tabset .tabset-fade}
+
+## PHQ Missingness NAs per person - count and percentages
+```{r PHQ Missingness}
+data.phq.raw$na.per.person.phq <- rowSums(is.na(data.phq.raw[,colnames(data.phq.raw) %in% PHQ.items]))
+freq(data.phq.raw$na.per.person.phq)
+
+data.phq.raw$miss_pc_total.phq <- data.phq.raw$na.per.person.phq/PHQ.n.items
+freq(data.phq.raw$miss_pc_total.phq)
+```
+
+## GAD Missingness NAs per person - count and percentages
+```{r GAD Missingness}
+data.gad.raw$na.per.person.gad <- rowSums(is.na(data.gad.raw[,colnames(data.gad.raw) %in% GAD.items]))
+freq(data.gad.raw$na.per.person.gad)
+
+data.gad.raw$miss_pc_total.gad <- data.gad.raw$na.per.person.gad/GAD.n.items
+freq(data.gad.raw$miss_pc_total.gad)
+```
+
+# Merge PHQ, GAD, demographics and mental health disorders 
+
+Create a list of the data frames to join together 
+```{r list of dataframes to merge}
+dataframe_list <- list(
+  data.dem.raw,
+  data.mhd.raw,
+  data.gad.raw,
+  data.phq.raw
+)
+```
+
+Join data frames
+```{r join all datasets}
+data.joined <- plyr::join_all(
+  dataframe_list,
+  by = "ID" # Alternatively you can join by several columns
+  )
+#remove duplicate cols
+data.joined <- data.joined[, !duplicated(colnames(data.joined))]
+```
+
+# **Data preparation** {.tabset .tabset-fade}
+
+## Missing data
+
+### Convert all -77, -88 and -99 / "Seen but not answered", "Don't know", and "Prefer not to answer" to NA
+```{r convert all -77,-88 and -99 to NA}
+#convert all numeric variables to NA
+dat <- data.joined %>%
+  dplyr::mutate_all(., ~na_if(., -88)) %>% 
+  dplyr::mutate_all(., ~na_if(., -99)) %>%
+  dplyr::mutate_all(., ~na_if(., -77))
+```
+
+### If data import is older [i.e. does not include enddate and startdate]
+Change -88 (Don't know), -99 (Prefer not to answer), and -77 (Seen but not answered) to NA
+```{r change missing data to NA}
+dat <- data.joined %>%
+  #select(-c("startdate","enddate")) %>% #Dropping startdate and enddate in new rds files
+  mutate_all(., ~na_if(., -88)) %>% 
+  mutate_all(., ~na_if(., -99)) %>%
+  mutate_all(., ~na_if(., -77)) %>%
+  mutate_all(., ~na_if(., "Seen but not answered")) %>%
+  mutate_all(., ~na_if(., "Don't know")) %>%
+  mutate_all(., ~na_if(., "Prefer not to say"))
+```
+
+### Getting rid of empty factor levels
+```{r Empty factor levels}
+dat <- dat %>%
+  mutate_if(is.factor, ~forcats::fct_drop(., only = "Seen but not answered")) %>%
+  mutate_if(is.factor, ~forcats::fct_drop(., only = "Don't know")) %>%
+  mutate_if(is.factor, ~forcats::fct_drop(., only = "Prefer not to answer"))
+```
+
+## Identify duplicates
+```{r Identify duplicates}
+dat$ID.dup <- duplicated(dat$ID)
+
+summary(as.factor(dat$ID.dup))
+
+data.dup <- dat %>%
+  filter(ID.dup == TRUE)
+
+dat <- dat %>%
+  filter(ID.dup == FALSE)
+```
+
+## Remove age outlier
+```{r age outlier check}
+# Outlier limits
+age_upper_limit = 100
+age_lower_limit = 16
+
+#apply age limits
+age.unc_upper <- which(dat$age > age_upper_limit)
+age.unc_upper
+age.unc_lower <- which(dat$age < age_lower_limit)
+age.unc_lower
+
+# Number of participants with outlier values
+age.unc_outliers <- append(age.unc_upper, age.unc_lower)
+length(age.unc_outliers)
+
+# Remove outliers
+dat$age <- with(dat, ifelse(age > age_upper_limit | age < age_lower_limit, NA, age))
+```
+
+## Remove those without sex, age and incomplete PHQ/GAD items
+```{r remove anyone who doesnt report sex or age}
+dat <- dat[complete.cases(dat[,"sex"]),]
+summary(dat$ID)
+dat <- dat[complete.cases(dat[,"age"]),]
+summary(dat$ID)
+#have removed incomplete PHQ/GAD items for factor analyses and conducting factor scores
+dat <- dat[complete.cases(dat[, ALL.items.full_numeric]),]
+summary(dat$ID)
+```
+ - All participants reported their biological sex and one person had their age missing, as I had previously removed this (age of 290). 
+ - 1,781 were dropped because they had missing PHQ or GAD items. 
+
+## Categorise age into groups 
+```{r define age groups}
+#create categorical age groups per 10 years 
+dat$age.group_numeric <- case_when(dat$age >= 16 & dat$age <= 25 ~ "1",
+                                  dat$age >= 26 & dat$age <= 35 ~ "2",
+                                  dat$age >= 36 & dat$age <= 45 ~ "3",
+                                  dat$age >= 46 & dat$age <= 55 ~ "4",
+                                  dat$age >= 56 & dat$age <= 65 ~ "5",
+                                  dat$age >= 66 & dat$age <= 75 ~ "6",
+                                  dat$age >= 76 & dat$age <= 85 ~ "7",
+                                  dat$age >= 86 & dat$age <= 95 ~ "8")
+
+#create age groups as factors 
+dat$age.group.factor <- recode_factor(dat$age.group_numeric,
+                                         "1" = "16 to 25 years",
+                                         "2" = "26 to 35 years",
+                                         "3" = "36 to 45 years",
+                                         "4" = "46 to 55 years",
+                                         "5" = "56 to 65 years",
+                                         "6" = "66 to 75 years",
+                                         "7" = "76 to 85 years",
+                                         "8" = "86 to 95 years")
+#have a look at the data
+freq(dat$age.group.factor, cumul = F) 
+```
+
+## Create self-report diagnostic groups
+
+```{r create self-report MDD or any anxiety group}
+#Reported MDD or any anxiety diagnosis
+dat$MDD_anxiety <- ifelse(dat$mhd.MDD_numeric == "1" | 
+                            dat$mhd.GAD_numeric == "1" |
+                            dat$mhd.social_anxiety_numeric == "1" | 
+                            dat$mhd.specific_phobia_numeric == "1" | 
+                            dat$mhd.agoraphobia_numeric == "1" | 
+                            dat$mhd.panic_disorder_numeric == "1", 1, 0)
+dat <- dat %>%
+  mutate(
+    MDD_anxiety.factor =
+    recode_factor(MDD_anxiety, 
+                  "1" = "MDD and any anxiety",
+                  "0" = "No MDD and any anxiety"
+    ))
+table(dat$MDD_anxiety.factor)
+```
+
+```{r create self-report MDD only group}
+#MDD only group - not reported any anxiety disorder
+dat$MDD.only <- ifelse(dat$mhd.MDD_numeric == "1" & 
+                            dat$mhd.GAD_numeric == "0" &
+                            dat$mhd.social_anxiety_numeric == "0" & 
+                            dat$mhd.specific_phobia_numeric == "0" & 
+                            dat$mhd.agoraphobia_numeric == "0" & 
+                            dat$mhd.panic_disorder_numeric == "0", 1, 0)
+dat <- dat %>%
+  mutate(
+    MDD.only.factor =
+    recode_factor(MDD.only, 
+                  "1" = "MDD only",
+                  "0" = "No MDD only"
+    ))
+table(dat$MDD.only.factor)
+```
+
+```{r create self-report GAD only group}
+#GAD only group
+dat$GAD.only <- ifelse(dat$mhd.GAD_numeric == "1" & 
+                            dat$mhd.MDD_numeric == "0" &
+                            dat$mhd.social_anxiety_numeric == "0" & 
+                            dat$mhd.specific_phobia_numeric == "0" & 
+                            dat$mhd.agoraphobia_numeric == "0" & 
+                            dat$mhd.panic_disorder_numeric == "0", 1, 0)
+dat <- dat %>%
+  mutate(
+    GAD.only.factor =
+    recode_factor(GAD.only, 
+                  "1" = "GAD only",
+                  "0" = "No GAD only"
+    ))
+table(dat$GAD.only.factor)
+```
+
+```{r create self-report comorbid MDD and GAD only groups}
+#Comorbid MDD and GAD
+dat$MDD_GAD <- ifelse(dat$mhd.GAD_numeric == "1" & 
+                            dat$mhd.MDD_numeric == "1" &
+                            dat$mhd.social_anxiety_numeric == "0" & 
+                            dat$mhd.specific_phobia_numeric == "0" & 
+                            dat$mhd.agoraphobia_numeric == "0" & 
+                            dat$mhd.panic_disorder_numeric == "0", 1, 0)
+dat <- dat %>%
+  mutate(
+    MDD_GAD.factor =
+    recode_factor(MDD_GAD, 
+                  "1" = "Comorbid MDD and GAD only",
+                  "0" = "No comorbid MDD and GAD only"
+    ))
+table(dat$MDD_GAD.factor)
+```
+
+```{r create self-report any other anxiety disorder group}
+#All who have any other anxiety disorder
+dat$anxiety.other.diagnosis <- ifelse(dat$mhd.social_anxiety_numeric == "1" | 
+                                            dat$mhd.specific_phobia_numeric == "1" | 
+                                            dat$mhd.agoraphobia_numeric == "1" | 
+                                            dat$mhd.panic_disorder_numeric == "1", 1, 0)
+dat <- dat %>%
+  mutate(
+    anxiety.other.diagnosis.factor =
+    recode_factor(anxiety.other.diagnosis, 
+                  "1" = "Other anxiety disorder",
+                  "0" = "No other anxiety disorder"
+    ))
+table(dat$anxiety.other.diagnosis.factor)
+```
+
+```{r create self-report any other anxiety disorder only group}
+#all who have any other anxiety disorder only 
+dat$anxiety.other.diagnosis.only <- ifelse((dat$mhd.social_anxiety_numeric == "1" | 
+                                            dat$mhd.specific_phobia_numeric == "1" | 
+                                            dat$mhd.agoraphobia_numeric == "1" | 
+                                            dat$mhd.panic_disorder_numeric == "1" &
+                                            (dat$mhd.GAD_numeric == "0") &  
+                                            dat$mhd.MDD_numeric == "0"), 1, 0)
+dat <- dat %>%
+  mutate(
+    anxiety.other.diagnosis.only.factor =
+    recode_factor(anxiety.other.diagnosis.only, 
+                  "1" = "Other anxiety disorder without MDD and GAD",
+                  "0" = "No other anxiety disorder without MDD and GAD"
+    ))
+table(dat$anxiety.other.diagnosis.only.factor)
+```
+
+## Create data sets with just men/women
+```{r datasets for males and males}
+data.female <- dat %>% filter(sex == "Female")
+data.male <- dat %>% filter (sex == "Male")
+```
+
+## Create Highest Education variable
+
+Assumes Degree > A level > NVQ > CSE/GCSE
+```{r define highest education}
+#create numeric version of the highest education variable
+dat <- dat %>%
+  mutate(
+    highest_education_numeric =
+      case_when(
+        dem.university == "Yes" ~ 4,
+        dem.alevels == "Yes" ~ 3,
+        dem.NVQ == "Yes" ~ 2,
+        dem.gcse == "Yes" ~ 1,
+        dem.cse == "Yes" ~ 1))
+
+#recode the numeric version into a factor
+dat <- dat %>%
+  mutate(
+    highest_education =
+      recode_factor(highest_education_numeric,
+        `1` = "GCSE/CSE",
+        `2` = "NVQ",
+        `3` = "A-levels",
+        `4` = "University"))
+
+freq(dat$highest_education)
+```
+
+## Categroise PHQ-9 and GAD-7 items
+
+### PHQ
+```{r making PHQ items categorical}
+#categorise the PHQ items for the logistic regressions
+dat$phq.depressed_mood.cat <- ifelse(dat$phq.depressed_mood_numeric > 0, 1, 0)
+dat$phq.anhedonia.cat <- ifelse(dat$phq.anhedonia_numeric > 0, 1, 0)
+dat$phq.sleep_change.cat <- ifelse(dat$phq.sleep_change_numeric > 0, 1, 0)
+dat$phq.little_energy.cat <- ifelse(dat$phq.little_energy_numeric > 0, 1, 0)
+dat$phq.eating_problems.cat <- ifelse(dat$phq.eating_problems_numeric > 0, 1, 0)
+dat$phq.worthlessness.cat <- ifelse(dat$phq.worthlessness_numeric > 0, 1, 0)
+dat$phq.concentration_problems.cat <- ifelse(dat$phq.concentration_problems_numeric > 0, 1, 0)
+dat$phq.motor_problems.cat <- ifelse(dat$phq.motor_problems_numeric > 0, 1, 0)
+dat$phq.suicide_ideation.cat <- ifelse(dat$phq.suicide_ideation_numeric > 0, 1, 0)
+
+table(dat$phq.depressed_mood.cat)
+```
+
+### GAD
+```{r making GAD items categorical}
+#categorise the GAD items for the logistic regressions
+dat$gad.feeling_anxious.cat <- ifelse(dat$gad.feeling_anxious_numeric > 0, 1, 0)
+dat$gad.control_worrying.cat <- ifelse(dat$gad.control_worrying_numeric > 0, 1, 0)
+dat$gad.worry_toomuch.cat <- ifelse(dat$gad.worry_toomuch_numeric > 0, 1, 0)
+dat$gad.trouble_relaxing.cat <- ifelse(dat$gad.trouble_relaxing_numeric > 0, 1, 0)
+dat$gad.restless.cat <- ifelse(dat$gad.restless_numeric > 0, 1, 0)
+dat$gad.irritable.cat <- ifelse(dat$gad.irritable_numeric > 0, 1, 0)
+dat$gad.feeling_afraid.cat <- ifelse(dat$gad.feeling_afraid_numeric > 0, 1, 0)
+
+table(dat$gad.feeling_anxious.cat)
+```
+
+## Total scores
+
+### PHQ
+```{r calculate PHQ total score }
+#calulate total score
+PHQ.scored.items <- scoreItems(keys = PHQ.items.key,
+                                        items = dat[PHQ.items],
+                                        totals = TRUE, 
+                                        missing = TRUE, 
+                                        impute = 'none', #this should not matter as the data is full
+                                        min = 0, 
+                                        max = 3)
+#Add in column to data frame
+dat$PHQ.total.score <- PHQ.scored.items$scores
+
+table(dat$PHQ.total.score)
+```
+
+### GAD
+```{r calculate GAD total score }
+#calulate total score
+GAD.scored.items <- scoreItems(keys = GAD.items.key,
+                                        items = dat[GAD.items],
+                                        totals = TRUE, 
+                                        missing = TRUE, 
+                                        impute = 'none', 
+                                        min = 0, 
+                                        max = 3)
+#Add in column to data frame
+dat$GAD.total.score <- GAD.scored.items$scores
+
+table(dat$GAD.total.score)
+```
+
+## Create ordered factors for PHQ anf GAD items to aid labelling for endorsement plot
+
+```{r create ordered factors for endorsement plot}
+dat$phq.anhedonia.cat.labelled <- recode_factor(dat$phq.anhedonia.cat, 
+                                          "0" = "Did not report symptom", 
+                                           "1" = "Reported symptom")
+
+dat$phq.depressed_mood.cat.labelled <- recode_factor(dat$phq.depressed_mood.cat, 
+                                           "0" = "Did not report symptom", 
+                                           "1" = "Reported symptom")
+
+dat$phq.suicide_ideation.cat.labelled <- recode_factor(dat$phq.suicide_ideation.cat, 
+                                          "0" = "Did not report symptom", 
+                                           "1" = "Reported symptom")
+
+dat$phq.concentration_problems.cat.labelled <- recode_factor(dat$phq.concentration_problems.cat, 
+                                           "0" = "Did not report symptom", 
+                                           "1" = "Reported symptom")
+
+dat$phq.worthlessness.cat.labelled <- recode_factor(dat$phq.worthlessness.cat, 
+                                           "0" = "Did not report symptom", 
+                                           "1" = "Reported symptom")
+
+dat$phq.little_energy.cat.labelled <- recode_factor(dat$phq.little_energy.cat, 
+                                           "0" = "Did not report symptom", 
+                                           "1" = "Reported symptom")
+
+dat$phq.eating_problems.cat.labelled <- recode_factor(dat$phq.eating_problems.cat, 
+                                           "0" = "Did not report symptom", 
+                                           "1" = "Reported symptom")
+
+dat$phq.sleep_change.cat.labelled <- recode_factor(dat$phq.sleep_change.cat, 
+                                           "0" = "Did not report symptom", 
+                                           "1" = "Reported symptom")
+
+dat$phq.motor_problems.cat.labelled <- recode_factor(dat$phq.motor_problems.cat, 
+                                          "0" = "Did not report symptom", 
+                                           "1" = "Reported symptom")
+
+dat$gad.worry_toomuch.cat.labelled <- recode_factor(dat$gad.worry_toomuch.cat, 
+                                           "0" = "Did not report symptom", 
+                                           "1" = "Reported symptom")
+
+dat$gad.control_worrying.cat.labelled <- recode_factor(dat$gad.control_worrying.cat, 
+                                           "0" = "Did not report symptom", 
+                                           "1" = "Reported symptom")
+
+dat$gad.feeling_anxious.cat.labelled <- recode_factor(dat$gad.feeling_anxious.cat, 
+                                           "0" = "Did not report symptom", 
+                                           "1" = "Reported symptom")
+
+dat$gad.feeling_afraid.cat.labelled <- recode_factor(dat$gad.feeling_afraid.cat, 
+                                           "0" = "Did not report symptom", 
+                                           "1" = "Reported symptom")
+
+dat$gad.trouble_relaxing.cat.labelled <- recode_factor(dat$gad.trouble_relaxing.cat, 
+                                           "0" = "Did not report symptom", 
+                                           "1" = "Reported symptom")
+
+dat$gad.restless.cat.labelled <- recode_factor(dat$gad.restless.cat, 
+                                           "0" = "Did not report symptom", 
+                                           "1" = "Reported symptom")
+
+dat$gad.irritable.cat.labelled <- recode_factor(dat$gad.irritable.cat, 
+                                           "0" = "Did not report symptom", 
+                                           "1" = "Reported symptom")
+```
+
+# **Sample descriptives**
+
+## Demographics
+```{r call packages for descriptives, include=FALSE}
+library(janitor)
+library(tidyr)
+library(tidyverse)
+```
+
+```{r descriptives for age}
+continuous_age_descriptives_raw <- dat %>%
+  group_by(sex) %>%
+  summarise(mean = mean(age), sd = sd(age), min = min(age), max = max(age)) %>%
+  pivot_longer(cols = c("mean", "sd", "min", "max")) %>%
+  rename(descriptive = name) %>%
+  pivot_wider(names_from = sex, values_from = value) %>%
+  mutate(Total = 
+           c(mean(dat$age), sd(dat$age), min(dat$age), max(dat$age)),
+         sd_male = c(sd(data.male$age), NA_real_, NA_real_, NA_real_),
+         sd_female = c(sd(data.female$age), NA_real_, NA_real_, NA_real_),
+         sd_total = c(sd(dat$age), NA_real_, NA_real_, NA_real_)) %>%
+  select(
+    "Descriptive" = descriptive,
+    "Male" = Male,
+    "% Male" = sd_male,
+    "Female" = Female,
+    "% Female" = sd_female,
+    "Total" = Total,
+    "% Total" = sd_total) 
+  
+continuous_age_descriptives <- continuous_age_descriptives_raw[-c(2), ]
+```
+
+```{r descriptives for age group}
+age_group_descriptives <- dat %>% #create object to bind later on
+  count(sex, age.group.factor) %>%
+  mutate(Prop = round(n/sum(n)*100, 2)) %>%
+  pivot_wider(names_from = sex, values_from = c(n, Prop)) %>%
+  mutate(Total = n_Male + n_Female,
+         Prop_total = Prop_Male + Prop_Female) %>% 
+  select(
+    "Descriptive" = age.group.factor,
+    "Male" = n_Male,
+    "% Male" = Prop_Male,
+    "Female" = n_Female,
+    "% Female" = Prop_Female,
+    "Total" = Total,
+    "% Total" = Prop_total)
+age_group_descriptives 
+```
+
+```{r descriptives for highest education}
+highest_education_descriptives.raw <- dat %>% #create object to bind later on
+  count(sex, highest_education) %>%
+  mutate(Prop = round(n/sum(n)*100, 2)) %>%
+  pivot_wider(names_from = sex, values_from = c(n, Prop)) %>%
+  mutate(Total = n_Male + n_Female,
+         Prop_total = Prop_Male + Prop_Female) %>% 
+  select(
+    "Descriptive" = highest_education,
+    "Male" = n_Male,
+    "% Male" = Prop_Male,
+    "Female" = n_Female,
+    "% Female" = Prop_Female,
+    "Total" = Total,
+    "% Total" = Prop_total)
+highest_education_descriptives <- highest_education_descriptives.raw[-c(5),]
+```
+
+```{r descriptives for self-report diagnosis}
+#MDD total
+diagnosis_descriptives_mdd.raw <- dat %>% #create object to bind later on
+  count(sex, mhd.MDD) %>%
+  mutate(Prop = round(n/sum(n)*100, 2)) %>%
+  pivot_wider(names_from = sex, values_from = c(n, Prop)) %>%
+  mutate(Total = n_Male + n_Female,
+         Prop_total = Prop_Male + Prop_Female) %>% 
+  select(
+    "Descriptive" = mhd.MDD,
+    "Male" = n_Male,
+    "% Male" = Prop_Male,
+    "Female" = n_Female,
+    "% Female" = Prop_Female,
+    "Total" = Total,
+    "% Total" = Prop_total)
+
+diagnosis_descriptives_mdd <- diagnosis_descriptives_mdd.raw[-c(1,3), ] 
+
+#mdd only 
+diagnosis_descriptives_mdd_only.raw <- dat %>% #create object to bind later on
+  count(sex, MDD.only.factor) %>%
+  mutate(Prop = round(n/sum(n)*100, 2)) %>%
+  pivot_wider(names_from = sex, values_from = c(n, Prop)) %>%
+  mutate(Total = n_Male + n_Female,
+         Prop_total = Prop_Male + Prop_Female) %>% 
+  select(
+    "Descriptive" = MDD.only.factor,
+    "Male" = n_Male,
+    "% Male" = Prop_Male,
+    "Female" = n_Female,
+    "% Female" = Prop_Female,
+    "Total" = Total,
+    "% Total" = Prop_total)
+
+diagnosis_descriptives_mdd_only <- diagnosis_descriptives_mdd_only.raw[-c(2,3), ]
+
+#GAD
+diagnosis_descriptives_gad.raw <- dat %>% #create object to bind later on
+  count(sex, mhd.GAD) %>%
+  mutate(Prop = round(n/sum(n)*100, 2)) %>%
+  pivot_wider(names_from = sex, values_from = c(n, Prop)) %>%
+  mutate(Total = n_Male + n_Female,
+         Prop_total = Prop_Male + Prop_Female) %>% 
+  select(
+    "Descriptive" = mhd.GAD,
+    "Male" = n_Male,
+    "% Male" = Prop_Male,
+    "Female" = n_Female,
+    "% Female" = Prop_Female,
+    "Total" = Total,
+    "% Total" = Prop_total)
+
+diagnosis_descriptives_gad <- diagnosis_descriptives_gad.raw[-c(1,3), ] 
+
+#GAD only
+diagnosis_descriptives_gad_only.raw <- dat %>% #create object to bind later on
+  count(sex, GAD.only.factor) %>%
+  mutate(Prop = round(n/sum(n)*100, 2)) %>%
+  pivot_wider(names_from = sex, values_from = c(n, Prop)) %>%
+  mutate(Total = n_Male + n_Female,
+         Prop_total = Prop_Male + Prop_Female) %>% 
+  select(
+    "Descriptive" = GAD.only.factor,
+    "Male" = n_Male,
+    "% Male" = Prop_Male,
+    "Female" = n_Female,
+    "% Female" = Prop_Female,
+    "Total" = Total,
+    "% Total" = Prop_total)
+
+diagnosis_descriptives_gad_only <- diagnosis_descriptives_gad_only.raw[-c(2,3), ]
+
+#Other anxiety diagnoses
+diagnosis_descriptives_other_anxiety.raw <- dat %>% #create object to bind later on
+  count(sex, anxiety.other.diagnosis.factor) %>%
+  mutate(Prop = round(n/sum(n)*100, 2)) %>%
+  pivot_wider(names_from = sex, values_from = c(n, Prop)) %>%
+  mutate(Total = n_Male + n_Female,
+         Prop_total = Prop_Male + Prop_Female) %>% 
+  select(
+    "Descriptive" = anxiety.other.diagnosis.factor,
+    "Male" = n_Male,
+    "% Male" = Prop_Male,
+    "Female" = n_Female,
+    "% Female" = Prop_Female,
+    "Total" = Total,
+    "% Total" = Prop_total)
+
+diagnosis_descriptives_other_anxiety <- diagnosis_descriptives_other_anxiety.raw[-c(2,3), ]
+
+#Other anxiety disorder without MDD and GAD
+diagnosis_descriptives_other_anxiety.only.raw <- dat %>% #create object to bind later on
+  count(sex, anxiety.other.diagnosis.only.factor) %>%
+  mutate(Prop = round(n/sum(n)*100, 2)) %>%
+  pivot_wider(names_from = sex, values_from = c(n, Prop)) %>%
+  mutate(Total = n_Male + n_Female,
+         Prop_total = Prop_Male + Prop_Female) %>% 
+  select(
+    "Descriptive" = anxiety.other.diagnosis.only.factor,
+    "Male" = n_Male,
+    "% Male" = Prop_Male,
+    "Female" = n_Female,
+    "% Female" = Prop_Female,
+    "Total" = Total,
+    "% Total" = Prop_total)
+
+diagnosis_descriptives_other_anxiety.only <- diagnosis_descriptives_other_anxiety.only.raw[-c(2,3), ]
+
+#bind all rows together
+diagnosis_descriptives <- rbind(diagnosis_descriptives_mdd, 
+                              diagnosis_descriptives_mdd_only, 
+                              diagnosis_descriptives_gad, 
+                              diagnosis_descriptives_gad_only, 
+                              diagnosis_descriptives_other_anxiety,
+                              diagnosis_descriptives_other_anxiety.only)
+```
+
+```{r descriptives for ethnicity }
+ethnicity_descriptives.raw <- dat %>% #create object to bind later on
+  count(sex, dem.ethnicity) %>%
+  mutate(Prop = round(n/sum(n)*100, 2)) %>%
+  pivot_wider(names_from = sex, values_from = c(n, Prop)) %>%
+  mutate(Total = n_Male + n_Female,
+         Prop_total = Prop_Male + Prop_Female) %>% 
+  select(
+    "Descriptive" = dem.ethnicity,
+    "Male" = n_Male,
+    "% Male" = Prop_Male,
+    "Female" = n_Female,
+    "% Female" = Prop_Female,
+    "Total" = Total,
+    "% Total" = Prop_total)
+
+ethnicity_descriptives <- ethnicity_descriptives.raw[-c(7), ]
+ethnicity_descriptives
+```
+
+```{r bind all descriptives together}
+descriptives <- bind_rows(
+  continuous_age_descriptives,
+  age_group_descriptives,
+  ethnicity_descriptives,
+  highest_education_descriptives,
+  diagnosis_descriptives
+)
+
+#add in column to show which descriptives they are
+descriptives <- descriptives %>%
+  mutate(
+    Category = 
+      c("Age", "Age", "Age",
+        "Age group", "Age group", "Age group", "Age group", "Age group", "Age group", "Age group", "Age group",
+        "Ethnicity", "Ethnicity", "Ethnicity", "Ethnicity", "Ethnicity", "Ethnicity",
+        "Highest education level", "Highest education level", "Highest education level", "Highest education level",
+        "Self-reported diagnosis", "Self-reported diagnosis", "Self-reported diagnosis", "Self-reported diagnosis", "Self-reported diagnosis", "Self-reported diagnosis"),
+    Male = round(Male, 0),
+    Female = round(Female, 0),
+    Total = round(Total, 0),
+    `% Male /SD`= round(`% Male`, 2),
+    `% Female /SD`= round(`% Female`, 2),
+    `% Total`= round(`% Total`, 2)) %>%
+select(
+    Category,
+    Descriptive,
+    Male,
+    `% Male /SD`,
+    Female,
+    `% Female /SD`,
+    Total,
+    `% Total`) 
+
+#final table to be viewed in word
+kable(descriptives) 
+```
+
+```{r RE create datasets for males and males, include=FALSE}
+data.female <- dat %>% filter(sex == "Female")
+data.male <- dat %>% filter (sex == "Male")
+```
+
+## Continuous descriptives
+```{r continuous descriptives for age}
+library(tidyverse)
+dat %>%
+  group_by(sex) %>%
+  descr(dat[,continuous.variables],
+      round.digits = 2,
+      transpose = FALSE)
+
+descr(x = dat[,continuous.variables],
+      round.digits = 2,
+      transpose = TRUE)
+```
+
+## Individuals that meet current cut off criteria for GAD-7 and PHQ-9
+
+* PHQ criteria: Those who score above 9
+* GAD criteria: Those who score above 7
+
+```{r how many meet current cut off}
+#how many meet the cinical cut-off for PHQ
+meetPHQcutoff <- ifelse(dat$PHQ.total.score > 9, 1, 0)
+table(meetPHQcutoff)
+
+#how many meet the cinical cut-off for GAD
+meetGADcutoff <- ifelse(dat$GAD.total.score > 6, 1, 0)
+table(meetGADcutoff)
+```
+
+## Endorsement of items: likert scale plot 
+```{r likert plot of PHQ and GAD items}
+endorsement_plot <- sjPlot::plot_likert(
+  items = dat[,cat.items.labelled],
+  title = "Endorsement of PHQ-9 and GAD-7 symptoms in GLAD",
+  axis.labels = c("Anhedonia",
+             "Depressed mood",
+             "Sleep change",
+             "Little energy",
+             "Weight or Appetite problems",
+             "Worthlessness",
+             "Concentration problems",
+             "Motor problems",
+             "Suicide ideation",
+             "Feeling anxious",
+             "Difficulty controlling worrying",
+             "Worry too much",
+             "Trouble relaxing", 
+             "Restlessness", 
+             "Irritable",
+             "Feeling afraid"),
+  wrap.labels = 20,
+  digits = 0,
+  reverse.scale = TRUE,
+  cat.neutral = NULL,
+  value = "show",
+  catcount = 2,
+  geom.colors = c("#b7dee8","#efc00b"))
+
+#have a look at the plot
+endorsement_plot
+
+#png
+ggsave(
+  "endorsement_plot.png",
+  plot = endorsement_plot,
+  device = "png",
+  path = paste0(plots_path, "endorsement_plot/"),
+  width = 8,
+  height = 9
+)
+```
+
+# Save data
+
+```{r save data file}
+# save R data file
+saveRDS(object = dat, file = paste0(data_path, "data_formatted.rds"))
+```
+
+
+
+
+
