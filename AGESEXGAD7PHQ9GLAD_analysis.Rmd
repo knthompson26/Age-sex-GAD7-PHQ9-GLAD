@@ -595,32 +595,15 @@ combined_symptoms_plot <- ggplot(
   geom_hline(linetype = "dashed", yintercept = 1) +
   scale_y_continuous(trans = log10_trans(), breaks=c(0.4, 0.6, 0.8, 1, 1.2, 1.4, 1.6, 1.8, 2)) +
   coord_flip()
+
 combined_symptoms_plot
 
-#save the plot
-ggsave(
-  "combined_symptoms_plot.pdf",
-  plot = combined_symptoms_plot,
-  device = "pdf",
-  path = "../plots/age_and_sex/symptoms/",
-  width = 8,
-  height = 9
-)
 #png
 ggsave(
   "combined_symptoms_plot.png",
   plot = combined_symptoms_plot,
   device = "png",
-  path = "../plots/age_and_sex/symptoms/",
-  width = 8,
-  height = 9
-)
-#jpeg
-ggsave(
-  "combined_symptoms_plot.jpeg",
-  plot = combined_symptoms_plot,
-  device = "jpeg",
-  path = "../plots/age_and_sex/symptoms/",
+  path = paste(plots_path, "age_and_sex/symptoms/"),
   width = 8,
   height = 9
 )
@@ -985,31 +968,12 @@ age.cat.plot <- ggplot(
 
 age.cat.plot
 
-
-#save the plot
-ggsave(
-  "age.cat.plot.pdf",
-  plot = age.cat.plot,
-  device = "pdf",
-  path = "../plots/age_and_sex/symptoms/",
-  width = 9,
-  height = 7
-)
 #png
 ggsave(
   "age.cat.plot.png",
   plot = age.cat.plot,
   device = "png",
-  path = "../plots/age_and_sex/symptoms/",
-  width = 9,
-  height = 7
-)
-#jpeg
-ggsave(
-  "age.cat.plot.jpeg",
-  plot = age.cat.plot,
-  device = "jpeg",
-  path = "../plots/age_and_sex/symptoms/",
+  path = paste0(plots_path, "/age_and_sex/symptoms/"),
   width = 9,
   height = 7
 )
@@ -1078,6 +1042,7 @@ factorsum_correlation_heat_map <- ggplot(metled_cor_matrix_factorsum, aes(Var2, 
     size = 12, hjust = 1))+
  coord_fixed() +
   geom_text(aes(Var2, Var1, label = round(value, digits = 2)), color = "black", size = 3)
+
 factorsum_correlation_heat_map
 ```
 
@@ -1233,138 +1198,6 @@ ALL_CI_factor.ordered$factor <- factor(ALL_CI_factor.ordered$factor,
 
 ## Factor plots  {.tabset .tabset-fade}
 
-### Age 
-```{r forest plot for age related variability in factors}
-#Age related variability
-age_factors_plot <- ggplot(
-  ALL_CI_factor.age.ordered,
-  aes(x = factor,
-      y = estimate,
-      ymin = conf.low,
-      ymax = conf.high)
-  ) +
-  geom_pointrange(col="black", fill="black", shape=22) +
-  labs(y = "Standardised Estimate (95% CI)",
-       x = "Symptom",
-       title = "Age-related variability in anxiety and depression factors",
-       subtitle = paste("n(total) = ", length(dat$PHQ.total.score),
-                        "; n(female) = ", sum(!is.na(dat$PHQ.total.score[dat$sex=="Female"])),
-                        "; n(male) = ", sum(!is.na(dat$PHQ.total.score[dat$sex=="Male"])),"\n",
-                        sep = "")) +
-  geom_errorbar(aes(ymin = conf.low, ymax = conf.high),width=0.2,cex=1)+
-  theme(panel.grid.major.x = element_line(size = 0.5,
-                                          linetype = 'dashed',
-                                          colour = "gray"),
-        plot.title=element_text(size=15,face="bold"),
-        axis.title.x = element_text(size=12,face="bold"),
-        axis.title.y = element_blank(),
-        axis.text.x = element_text(colour="black", size = 12),
-        axis.text.y = element_text(colour="black", size = 12),
-        axis.ticks.x = element_blank(),
-        axis.ticks.y = element_blank(),
-        panel.background = element_blank(),
-        legend.position = "bottom") +
- # scale_y_continuous(trans = log10_trans(), breaks=c(0.75, 0.8, 0.9, 1)) +
-  geom_hline(linetype = "dashed", yintercept = 0) +
-  coord_flip()
-
-age_factors_plot
-
-#save the plot
-ggsave(
-  "age_factors_plot.pdf",
-  plot = age_factors_plot,
-  device = "pdf",
-  path = "../plots/age_and_sex/factors/",
-  width = 8,
-  height = 9
-)
-#png
-ggsave(
-  "age_factors_plot.png",
-  plot = age_factors_plot,
-  device = "png",
-  path = "../plots/age_and_sex/factors/",
-  width = 8,
-  height = 9
-)
-#jpeg
-ggsave(
-  "age_factors_plot.jpeg",
-  plot = age_factors_plot,
-  device = "jpeg",
-  path = "../plots/age_and_sex/factors/",
-  width = 8,
-  height = 9
-)
-```
-
-### Sex plot
-```{r forest plot for sex related variability in factors}
-#Sex related variability
-sex_factors_plot <- ggplot(
-  ALL_CI_factor.sex.ordered,
-  aes(x = factor,
-      y = estimate,
-      ymin = conf.low,
-      ymax = conf.high)
-  ) +
-  geom_pointrange(col="black", fill="black", shape=22) +
-  labs(y = "Standardised Estimate (95% CI)",
-       x = "Symptom",
-       title = "Sex-related variability in anxiety and depression factors",
-       subtitle = paste("n(total) = ", length(dat$PHQ.total.score),
-                        "; n(female) = ", sum(!is.na(dat$PHQ.total.score[dat$sex=="Female"])),
-                        "; n(male) = ", sum(!is.na(dat$PHQ.total.score[dat$sex=="Male"])),"\n",
-                        sep = "")) +
-  geom_errorbar(aes(ymin=conf.low, ymax=conf.high),width=0.2,cex=1)+
-  theme(panel.grid.major.x = element_line(size = 0.5,
-                                          linetype = 'dashed',
-                                          colour = "gray"),
-        plot.title=element_text(size=15,face="bold"),
-        axis.title.x = element_text(size=12,face="bold"),
-        axis.title.y = element_blank(),
-        axis.text.x = element_text(colour="black", size = 12),
-        axis.text.y = element_text(colour="black", size = 12),
-        axis.ticks.x = element_blank(),
-        axis.ticks.y = element_blank(),
-        panel.background = element_blank(),
-        legend.position = "bottom") +
- # scale_y_continuous(trans = log10_trans(), breaks=c(0.5,0.6, 0.8, 1, 1.2, 1.4, 1.6, 1.8, 2)) +
-  geom_hline(linetype = "dashed", yintercept = 0) +
-  coord_flip()
-
-sex_factors_plot
-
-#save the plot
-ggsave(
-  "sex_factors_plot.pdf",
-  plot = sex_factors_plot,
-  device = "pdf",
-  path = "../plots/age_and_sex/factors/",
-  width = 8,
-  height = 9
-)
-#png
-ggsave(
-  "sex_factors_plot.png",
-  plot = sex_factors_plot,
-  device = "png",
-  path = "../plots/age_and_sex/factors/",
-  width = 8,
-  height = 9
-)
-#jpeg
-ggsave(
-  "sex_factors_plot.jpeg",
-  plot = sex_factors_plot,
-  device = "jpeg",
-  path = "../plots/age_and_sex/factors/",
-  width = 8,
-  height = 9
-)
-```
-
 ### Combined 
 ```{r combined factors plot}
 combined_factors_plot <- ggplot(
@@ -1403,30 +1236,12 @@ combined_factors_plot <- ggplot(
  coord_flip()
 combined_factors_plot
 
-#save the plot
-ggsave(
-  "combined_factors_plot.pdf",
-  plot = combined_factors_plot,
-  device = "pdf",
-  path = "../plots/age_and_sex/factors/",
-  width = 8,
-  height = 9
-)
 #png
 ggsave(
   "combined_factors_plot.png",
   plot = combined_factors_plot,
   device = "png",
-  path = "../plots/age_and_sex/factors/",
-  width = 8,
-  height = 9
-)
-#jpeg
-ggsave(
-  "combined_factors_plot.jpeg",
-  plot = combined_factors_plot,
-  device = "jpeg",
-  path = "../plots/age_and_sex/factors/",
+  path = paste0(plots_path, "age_and_sex/factors/"),
   width = 8,
   height = 9
 )
@@ -1623,7 +1438,7 @@ ggsave(
   "combined_factors_plot_without_sum",
   plot = combined_factors_plot_without_sum,
   device = "jpeg",
-  path = "../plots/age_and_sex/factors/",
+  path = paste0(plots_path,"age_and_sex/factors/"),
   width = 7,
   height = 4
 )
@@ -1651,30 +1466,12 @@ age_sex_symptom_factor_plot <- ggarrange(combined_symptoms_plot, combined_factor
                     legend = "bottom")
 age_sex_symptom_factor_plot
 
-#save the plot
-ggsave(
-  "combined.final_plot.pdf",
-  plot = age_sex_symptom_factor_plot,
-  device = "pdf",
-  path = "../plots/age_and_sex/",
-  width = 12,
-  height = 6
-)
 #png
 ggsave(
   "combined.final_plot.png",
   plot = age_sex_symptom_factor_plot,
   device = "png",
-  path = "../plots/age_and_sex/",
-  width = 12,
-  height = 6
-)
-#jpeg
-ggsave(
-  "combined.final_plot.jpeg",
-  plot = age_sex_symptom_factor_plot,
-  device = "jpeg",
-  path = "../plots/age_and_sex/",
+  path = paste0(plots_path,"age_and_sex/"),
   width = 12,
   height = 6
 )
