@@ -83,6 +83,160 @@ dat <- readRDS(file = paste0(data_path, "data_formatted.rds"))
 colnames(dat)
 ```
 
+## Prepare item lists
+```{r prepare item groups, include=FALSE}
+# All the items in numeric form
+ALL.items.full_numeric <- c("phq.anhedonia_numeric",
+             "phq.depressed_mood_numeric",
+             "phq.sleep_change_numeric",
+             "phq.little_energy_numeric",
+             "phq.eating_problems_numeric",
+             "phq.worthlessness_numeric",
+             "phq.concentration_problems_numeric",
+             "phq.motor_problems_numeric",
+             "phq.suicide_ideation_numeric",
+             "gad.feeling_anxious_numeric",
+             "gad.control_worrying_numeric",
+             "gad.worry_toomuch_numeric",
+             "gad.trouble_relaxing_numeric", 
+             "gad.restless_numeric", 
+             "gad.irritable_numeric",
+             "gad.feeling_afraid_numeric")
+
+# All the items as factors
+ALL.items.full <- c("phq.anhedonia",
+             "phq.depressed_mood",
+             "phq.sleep_change",
+             "phq.little_energy",
+             "phq.eating_problems",
+             "phq.worthlessness",
+             "phq.concentration_problems",
+             "phq.motor_problems",
+             "phq.suicide_ideation",
+             "gad.feeling_anxious",
+             "gad.control_worrying",
+             "gad.worry_toomuch",
+             "gad.trouble_relaxing", 
+             "gad.restless", 
+             "gad.irritable",
+             "gad.feeling_afraid")
+
+# Create vector with items that are included in total score
+GAD.items = c("gad.feeling_anxious_numeric",
+              "gad.control_worrying_numeric",
+              "gad.worry_toomuch_numeric",
+              "gad.trouble_relaxing_numeric",
+              "gad.restless_numeric",
+              "gad.irritable_numeric",
+              "gad.feeling_afraid_numeric")
+
+# Create vector with items that are included in total score
+PHQ.items = c("phq.anhedonia_numeric",
+              "phq.depressed_mood_numeric",
+              "phq.sleep_change_numeric",
+              "phq.little_energy_numeric",
+              "phq.eating_problems_numeric",
+              "phq.worthlessness_numeric",
+              "phq.concentration_problems_numeric",
+              "phq.motor_problems_numeric",
+              "phq.suicide_ideation_numeric")
+
+# list of categorical items
+cat.items <- c("phq.anhedonia.cat",
+             "phq.depressed_mood.cat",       
+             "phq.sleep_change.cat",
+             "phq.little_energy.cat",
+             "phq.eating_problems.cat",
+             "phq.worthlessness.cat",
+             "phq.concentration_problems.cat",
+             "phq.motor_problems.cat",
+             "phq.suicide_ideation.cat",
+             "gad.feeling_anxious.cat",
+             "gad.control_worrying.cat",
+             "gad.worry_toomuch.cat",
+             "gad.trouble_relaxing.cat", 
+             "gad.restless.cat", 
+             "gad.irritable.cat",
+             "gad.feeling_afraid.cat")
+
+# categorical items labeled for endorsement plot 
+cat.items.labelled <- c("phq.anhedonia.cat.labelled",
+             "phq.depressed_mood.cat.labelled",       
+             "phq.sleep_change.cat.labelled",
+             "phq.little_energy.cat.labelled",
+             "phq.eating_problems.cat.labelled",
+             "phq.worthlessness.cat.labelled",
+             "phq.concentration_problems.cat.labelled",
+             "phq.motor_problems.cat.labelled",
+             "phq.suicide_ideation.cat.labelled",
+             "gad.feeling_anxious.cat.labelled",
+             "gad.control_worrying.cat.labelled",
+             "gad.worry_toomuch.cat.labelled",
+             "gad.trouble_relaxing.cat.labelled", 
+             "gad.restless.cat.labelled", 
+             "gad.irritable.cat.labelled",
+             "gad.feeling_afraid.cat.labelled")
+
+# create data frame that doesn't include "worrying too much" item
+ALL.items.full.withoutworry <- c("phq.anhedonia",
+                                 "phq.depressed_mood",
+                                 "phq.sleep_change",
+                                 "phq.little_energy",
+                                 "phq.eating_problems",
+                                 "phq.worthlessness",
+                                 "phq.concentration_problems",
+                                 "phq.motor_problems",
+                                 "phq.suicide_ideation",
+                                 "gad.feeling_anxious",
+                                 "gad.control_worrying",
+                                 "gad.trouble_relaxing", 
+                                 "gad.restless", 
+                                 "gad.irritable",
+                                 "gad.feeling_afraid")
+
+# create data frame that doesn't include "concentration problems" item
+ALL.items.full.withoutconcentration <- c("phq.anhedonia",
+                                 "phq.depressed_mood",
+                                 "phq.sleep_change",
+                                 "phq.little_energy",
+                                 "phq.eating_problems",
+                                 "phq.worthlessness",
+                                 "phq.motor_problems",
+                                 "phq.suicide_ideation",
+                                 "gad.feeling_anxious",
+                                 "gad.control_worrying",
+                                 "gad.trouble_relaxing", 
+                                 "gad.restless", 
+                                 "gad.irritable",
+                                 "gad.feeling_afraid")
+
+# create data frame that doesn't include "concentration problems" and "irritability" item
+ALL.items.full.withoutirritability <- c("phq.anhedonia",
+                                 "phq.depressed_mood",
+                                 "phq.sleep_change",
+                                 "phq.little_energy",
+                                 "phq.eating_problems",
+                                 "phq.worthlessness",
+                                 "phq.motor_problems",
+                                 "phq.suicide_ideation",
+                                 "gad.feeling_anxious",
+                                 "gad.control_worrying",
+                                 "gad.trouble_relaxing", 
+                                 "gad.restless",
+                                 "gad.feeling_afraid")
+
+# continuous variables for descriptives
+continuous.variables <- c("PHQ.total.score", 
+                          "GAD.total.score", 
+                          "age")
+```
+
+## Create data sets with just men/women
+```{r datasets for males and males}
+data.female <- dat %>% filter(sex == "Female")
+data.male <- dat %>% filter (sex == "Male")
+```
+
 # **Preparation for factor analyses**
 
 ## Split groups into confirmatory and exploratory 
@@ -1280,7 +1434,7 @@ dat <- cbind(
 
 ```{r save data file}
 # save R data file
-saveRDS(object = dat, file = paste0(data_path, "data_formatted.rds"))
+saveRDS(object = dat, file = paste0(data_path, "data_formatted_FA.rds"))
 ```
 
 
