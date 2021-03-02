@@ -76,7 +76,7 @@ palette3 <- c("#78D9C5","#F5BE5E","#EEB6E9")
 
 Read in demographics
 ```{r read in demographic data, include=FALSE}
-data.dem.raw <- readRDS("../data/DEM.rds")
+data.dem.raw <- readRDS("../../data/DEM.rds")
 dim(data.dem.raw)
 colnames(data.dem.raw)
 data.dem.raw$birthyear <- NULL
@@ -87,7 +87,7 @@ colnames(data.dem.raw)
 
 Read in self report mental health disorders
 ```{r Read in self report mental health disorders, include=FALSE}
-data.mhd.raw <- readRDS("../data/MHD.rds")
+data.mhd.raw <- readRDS("../../data/MHD.rds")
 dim(data.mhd.raw)
 colnames(data.mhd.raw)
 data.mhd.raw$sex <- NULL
@@ -100,7 +100,7 @@ colnames(data.mhd.raw)
 
 Read in PHQ9
 ```{r Read in PHQ, include=FALSE}
-data.phq.raw <- readRDS("../data/PHQ.rds")
+data.phq.raw <- readRDS("../../data/PHQ.rds")
 dim(data.phq.raw)
 colnames(data.phq.raw)
 data.phq.raw$sex <- NULL
@@ -113,7 +113,7 @@ colnames(data.phq.raw)
 
 Read in GAD7
 ```{r Read in GAD7, include=FALSE}
-data.gad.raw <- readRDS("../data/GAD.rds")
+data.gad.raw <- readRDS("../../data/GAD.rds")
 dim(data.gad.raw)
 colnames(data.gad.raw)
 data.gad.raw$sex <- NULL
