@@ -50,7 +50,6 @@ library(reshape2)
 library(lavaan)
 library(mlogit)
 library(foreign)
-library(sjPlot)
 library(polycor)
 library(REdaS)
 library(scales)
@@ -84,10 +83,16 @@ data.dem.raw <- readRDS(paste0(data.raw_path, "DEM.rds"))
 dim(data.dem.raw)
 colnames(data.dem.raw)
 data.dem.raw$birthyear <- NULL
-data.dem.raw$startdate <- NULL
+# data.dem.raw$startdate <- NULL
 data.dem.raw$enddate <- NULL
 colnames(data.dem.raw)
 ```
+
+```{r check start dates}
+min(data.dem.raw$startdate)
+max(data.dem.raw$startdate)
+```
+
 
 Read in self report mental health disorders
 ```{r Read in self report mental health disorders, include=FALSE}
@@ -333,6 +338,98 @@ data.joined <- data.joined[, !duplicated(colnames(data.joined))]
 
 # **Data preparation** {.tabset .tabset-fade}
 
+## Subset of individuals who signed up during the pandemic 
+
+Dates for the definition of prepandemic
+```{r Potential dates for prepandemic definition}
+# Date of the first COVID-19 case in the United Kingdom (UK)
+date_first_case_uk_january_31 <- as.POSIXct("2020-01-31")
+
+# Date for assumed higher awareness of COVID / Lockdown in Italy 4. March 2020 / first festivals cancelled
+date_higher_awareness_march_1 <- as.POSIXct("2020-03-01")
+
+# Date the UK went into lockdown
+date_uk_lockdown_march_23 <- as.POSIXct("2020-03-23")
+```
+
+```{r Prepandemic definitions january_31}
+data.joined <- data.joined %>%
+  mutate(
+    prepandemic_january_31_numeric =
+      if_else(
+        startdate > date_first_case_uk_january_31, # The GLAD sign up is dated before the cut off (> longer ago)
+        true = 0, # Participant has not signed up before the pandemic,
+        false = 1, # Participant has signed up before the pandemic,
+        missing = NA_real_
+      )
+  )
+
+data.joined <- data.joined %>%
+  mutate(
+    prepandemic_january_31 =
+      recode_factor(
+        prepandemic_january_31_numeric,
+        "0" = "Sign up after 31st January",
+        "1" = "Sign up before 31st January"
+      )
+  )
+
+data.joined %>%
+  freq(prepandemic_january_31)
+```
+
+```{r Prepandemic definitions march_1}
+data.joined <- data.joined %>%
+  mutate(
+    prepandemic_march_1_numeric =
+      if_else(
+        startdate > date_higher_awareness_march_1, # The GLAD sign up is dated before the cut off (> longer ago)
+        true = 0, # Participant has not signed up before the pandemic,
+        false = 1, # Participant has signed up before the pandemic,
+        missing = NA_real_
+      )
+  )
+
+data.joined <- data.joined %>%
+  mutate(
+    prepandemic_march_1 =
+      recode_factor(
+        prepandemic_march_1_numeric,
+        "0" = "Sign up after 1st March",
+        "1" = "Sign up before 1st March"
+      )
+  )
+
+dat %>%
+  freq(prepandemic_march_1)
+```
+
+```{r Prepandemic definitions march_23}
+data.joined <- data.joined %>%
+  mutate(
+    prepandemic_march_23_numeric =
+      if_else(
+        startdate > date_uk_lockdown_march_23, # The GLAD sign up is dated before the cut off (> longer ago)
+        true = 0, # Participant has not signed up before the pandemic,
+        false = 1, # Participant has signed up before the pandemic,
+        missing = NA_real_
+      )
+  )
+
+data.joined <- data.joined %>%
+  mutate(
+    prepandemic_march_23 =
+      recode_factor(
+        prepandemic_march_23_numeric,
+        "0" = "Sign up after 23rd March",
+        "1" = "Sign up before 23rd March"
+      )
+  )
+
+data.joined %>%
+  freq(prepandemic_march_23)
+```
+
 ## Missing data
 
 ### Convert all -77, -88 and -99 / "Seen but not answered", "Don't know", and "Prefer not to answer" to NA
@@ -348,7 +445,7 @@ dat <- data.joined %>%
 Change -88 (Don't know), -99 (Prefer not to answer), and -77 (Seen but not answered) to NA
 ```{r change missing data to NA}
 dat <- data.joined %>%
-  #select(-c("startdate","enddate")) %>% #Dropping startdate and enddate in new rds files
+  select(-c("startdate","enddate")) %>% #Dropping startdate and enddate in new rds files
   mutate_all(., ~na_if(., -88)) %>% 
   mutate_all(., ~na_if(., -99)) %>%
   mutate_all(., ~na_if(., -77)) %>%
