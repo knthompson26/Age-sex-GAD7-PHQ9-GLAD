@@ -50,7 +50,6 @@ library(reshape2)
 library(lavaan)
 library(mlogit)
 library(foreign)
-library(sjPlot)
 library(polycor)
 library(REdaS)
 library(scales)
@@ -231,10 +230,30 @@ continuous.variables <- c("PHQ.total.score",
                           "age")
 ```
 
-## Create data sets with just men/women
-```{r datasets for males and males}
-data.female <- dat %>% filter(sex == "Female")
-data.male <- dat %>% filter (sex == "Male")
+# *Define the sample*
+
+```{r prepandemic indicator}
+prepandemic.31.Jan = TRUE
+prepandemic.01.Mar = FALSE
+prepandemic.23.Mar = FALSE
+```
+
+```{r redefining prepandemic sample}
+if (prepandemic.31.Jan == TRUE){
+  dat <- dat %>%
+    filter(prepandemic_january_31 == "Sign up before 31st January")
+}
+
+if (prepandemic.01.Mar == TRUE){
+  dat <- dat %>%
+    filter(prepandemic_march_1 == "Sign up before 1st March")
+}
+
+if (prepandemic.23.Mar == TRUE){
+  dat <- dat %>%
+    filter(prepandemic_march_23 == "Sign up before 23rd March")
+}
+
 ```
 
 # **Preparation for factor analyses**
@@ -1157,6 +1176,13 @@ fa.diagram(polycor.efa.fit4b.without_irritability)
 **Comments: Decided that excluding both concentration problems does not improve fit.**
 
 # **Sensitivity analysis: Rerun 4 factor model (without worry) in males and females separately**
+
+## Create data sets with just men/women
+```{r datasets for males and males}
+data.female <- dat %>% filter(sex == "Female")
+data.male <- dat %>% filter (sex == "Male")
+```
+
 ## Polychoric matrix for females 
 ```{r polycor matrix for females}
 #create dataframe without worry item

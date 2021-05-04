@@ -400,7 +400,7 @@ data.joined <- data.joined %>%
       )
   )
 
-dat %>%
+data.joined %>%
   freq(prepandemic_march_1)
 ```
 
@@ -445,7 +445,7 @@ dat <- data.joined %>%
 Change -88 (Don't know), -99 (Prefer not to answer), and -77 (Seen but not answered) to NA
 ```{r change missing data to NA}
 dat <- data.joined %>%
-  select(-c("startdate","enddate")) %>% #Dropping startdate and enddate in new rds files
+  select(-c("startdate")) %>% #Dropping startdate in new rds files
   mutate_all(., ~na_if(., -88)) %>% 
   mutate_all(., ~na_if(., -99)) %>%
   mutate_all(., ~na_if(., -77)) %>%
@@ -1122,7 +1122,7 @@ endorsement_plot <- sjPlot::plot_likert(
 endorsement_plot
 
 #png
-ggsave(
+ggplot2::ggsave(
   "endorsement_plot.png",
   plot = endorsement_plot,
   device = "png",
