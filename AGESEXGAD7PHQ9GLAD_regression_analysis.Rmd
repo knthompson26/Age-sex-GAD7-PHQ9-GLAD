@@ -1,6 +1,5 @@
 ---
-title: Age and sex-related variability in the presentation of anxiety and depression
-  symptoms in the GLAD Study
+title: "Age and sex-related variability in the presentation of anxiety and depression symptoms in the GLAD Study"
 author: "Katherine N Thompson"
 date: "10/02/2020"
 output:
@@ -250,6 +249,31 @@ continuous.variables <- c("PHQ.total.score",
 ```{r read in data and check variable names, include=FALSE}
 dat <- readRDS(file = paste0(data_path, "data_formatted_FA.rds"))
 colnames(dat)
+```
+
+# *Define the sample*
+
+```{r prepandemic indicator}
+prepandemic.31.Jan = FALSE
+prepandemic.01.Mar = FALSE
+prepandemic.23.Mar = FALSE
+```
+
+```{r redefining prepandemic sample}
+if (prepandemic.31.Jan == TRUE){
+  dat <- dat %>%
+    filter(prepandemic_january_31 == "Sign up before 31st January")
+}
+
+if (prepandemic.01.Mar == TRUE){
+  dat <- dat %>%
+    filter(prepandemic_march_1 == "Sign up before 1st March")
+}
+
+if (prepandemic.23.Mar == TRUE){
+  dat <- dat %>%
+    filter(prepandemic_march_23 == "Sign up before 23rd March")
+}
 ```
 
 ## Create data sets with just men/women
@@ -554,6 +578,8 @@ ALL_CI.sex.ordered$symptom <- factor(ALL_CI.sex.ordered$symptom,
 ALL_CI.ordered$symptom <- factor(ALL_CI.ordered$symptom,
                                      levels = paste(levels,
                                                     sep = ","))
+
+kable(ALL_CI.ordered) 
 ```
 
 ## Age and sex plots {.tabset .tabset-fade}
@@ -598,15 +624,15 @@ combined_symptoms_plot <- ggplot(
 
 combined_symptoms_plot
 
-#png
-ggsave(
-  "combined_symptoms_plot.png",
-  plot = combined_symptoms_plot,
-  device = "png",
-  path = paste(plots_path, "age_and_sex/symptoms/"),
-  width = 8,
-  height = 9
-)
+# #png
+# ggsave(
+#   "combined_symptoms_plot.png",
+#   plot = combined_symptoms_plot,
+#   device = "png",
+#   path = paste(plots_path, "age_and_sex/symptoms/"),
+#   width = 8,
+#   height = 9
+# )
 ```
 
 # **Sensitivity analysis with age as categorical** 
@@ -968,15 +994,15 @@ age.cat.plot <- ggplot(
 
 age.cat.plot
 
-#png
-ggsave(
-  "age.cat.plot.png",
-  plot = age.cat.plot,
-  device = "png",
-  path = paste0(plots_path, "/age_and_sex/symptoms/"),
-  width = 9,
-  height = 7
-)
+# #png
+# ggsave(
+#   "age.cat.plot.png",
+#   plot = age.cat.plot,
+#   device = "png",
+#   path = paste0(plots_path, "/age_and_sex/symptoms/"),
+#   width = 9,
+#   height = 7
+# )
 ```
 
 # **Age and sex related variability for the identified factors**
@@ -1175,7 +1201,7 @@ ALL_CI_factor <- ALL_CI_factor %>%
 
 #order
 ALL_CI_factor.ordered <- arrange(ALL_CI_factor, desc(estimate)) #ordered by age variables 
-
+kable(ALL_CI_factor.ordered)
 ```
 
 Make the symptom factor variable into a factor
@@ -1236,15 +1262,15 @@ combined_factors_plot <- ggplot(
  coord_flip()
 combined_factors_plot
 
-#png
-ggsave(
-  "combined_factors_plot.png",
-  plot = combined_factors_plot,
-  device = "png",
-  path = paste0(plots_path, "age_and_sex/factors/"),
-  width = 8,
-  height = 9
-)
+# #png
+# ggsave(
+#   "combined_factors_plot.png",
+#   plot = combined_factors_plot,
+#   device = "png",
+#   path = paste0(plots_path, "age_and_sex/factors/"),
+#   width = 8,
+#   height = 9
+# )
 ```
 
 # **Sensitivity analysis: Linear regressions rerun for factor associations WITHOUT controlling for sum scores**
@@ -1433,15 +1459,15 @@ combined_factors_plot_without_sum <- ggplot(
  coord_flip()
 combined_factors_plot_without_sum
 
-#jpeg
-ggsave(
-  "combined_factors_plot_without_sum",
-  plot = combined_factors_plot_without_sum,
-  device = "jpeg",
-  path = paste0(plots_path,"age_and_sex/factors/"),
-  width = 7,
-  height = 4
-)
+# #jpeg
+# ggsave(
+#   "combined_factors_plot_without_sum",
+#   plot = combined_factors_plot_without_sum,
+#   device = "jpeg",
+#   path = paste0(plots_path,"age_and_sex/factors/"),
+#   width = 7,
+#   height = 4
+# )
 ```
 
 
@@ -1466,15 +1492,15 @@ age_sex_symptom_factor_plot <- ggarrange(combined_symptoms_plot, combined_factor
                     legend = "bottom")
 age_sex_symptom_factor_plot
 
-#png
-ggsave(
-  "combined.final_plot.png",
-  plot = age_sex_symptom_factor_plot,
-  device = "png",
-  path = paste0(plots_path,"age_and_sex/"),
-  width = 12,
-  height = 6
-)
+# #png
+# ggsave(
+#   "combined.final_plot.png",
+#   plot = age_sex_symptom_factor_plot,
+#   device = "png",
+#   path = paste0(plots_path,"age_and_sex/"),
+#   width = 12,
+#   height = 6
+# )
 ```
 
 
