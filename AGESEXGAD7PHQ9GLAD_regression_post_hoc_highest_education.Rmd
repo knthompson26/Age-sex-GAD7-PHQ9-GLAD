@@ -1,0 +1,873 @@
+---
+title: "Age and sex-related variability in the presentation of anxiety and depression symptoms in the GLAD Study - highest education post hoc analysis"
+author: "Katherine N Thompson"
+date: "16/06/2021"
+output:
+  word_document:
+    toc: yes
+    toc_depth: '2'
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: 2
+    toc_float:
+      collapsed: no
+    number_sections: no
+    highlight: monochrome
+    theme: cerulean
+code_folding: show
+html_notebook:
+  theme: cerulean
+toc: yes
+---
+
+
+# Set up
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      comment = NA,
+                      prompt = FALSE,
+                      cache = FALSE)
+```
+
+Delete everything in your global environment
+```{r Clear global environment, include=FALSE}
+remove(list = ls())
+```
+
+Packages
+```{r Load packages, include=FALSE}
+library(knitr)
+library(car)
+library(psych)
+library(lubridate)
+library(broom)
+library(summarytools)
+library(data.table)
+library(eeptools)
+library(magrittr)
+library(reshape2)
+library(lavaan)
+library(mlogit)
+library(foreign)
+library(sjPlot)
+library(polycor)
+library(REdaS)
+library(scales)
+library(forcats)
+library(GPArotation)
+library(tidyverse)
+```
+
+Retrieve the recent date
+```{r Recent date, include=FALSE}
+date = Sys.Date()
+```
+
+Define colours for plotting
+```{r GLAD colour palette , include=FALSE}
+palette = c(
+  "#efc00b", #female
+  "#b7dee8"  #male
+  )
+
+palette3 <- c("#78D9C5","#F5BE5E","#EEB6E9")
+```
+
+```{r source data path file}
+source("../data_paths.R")
+```
+
+## Prepare item lists
+```{r prepare item groups, include=FALSE}
+#All the items in numeric form
+ALL.items.full_numeric <- c("phq.anhedonia_numeric",
+             "phq.depressed_mood_numeric",
+             "phq.sleep_change_numeric",
+             "phq.little_energy_numeric",
+             "phq.eating_problems_numeric",
+             "phq.worthlessness_numeric",
+             "phq.concentration_problems_numeric",
+             "phq.motor_problems_numeric",
+             "phq.suicide_ideation_numeric",
+             "gad.feeling_anxious_numeric",
+             "gad.control_worrying_numeric",
+             "gad.worry_toomuch_numeric",
+             "gad.trouble_relaxing_numeric", 
+             "gad.restless_numeric", 
+             "gad.irritable_numeric",
+             "gad.feeling_afraid_numeric")
+
+#All the items as factors
+ALL.items.full <- c("phq.anhedonia",
+             "phq.depressed_mood",
+             "phq.sleep_change",
+             "phq.little_energy",
+             "phq.eating_problems",
+             "phq.worthlessness",
+             "phq.concentration_problems",
+             "phq.motor_problems",
+             "phq.suicide_ideation",
+             "gad.feeling_anxious",
+             "gad.control_worrying",
+             "gad.worry_toomuch",
+             "gad.trouble_relaxing", 
+             "gad.restless", 
+             "gad.irritable",
+             "gad.feeling_afraid")
+
+# Create vector with items that are included in total score
+GAD.items = c("gad.feeling_anxious_numeric",
+              "gad.control_worrying_numeric",
+              "gad.worry_toomuch_numeric",
+              "gad.trouble_relaxing_numeric",
+              "gad.restless_numeric",
+              "gad.irritable_numeric",
+              "gad.feeling_afraid_numeric")
+
+# Create vector with items that are included in total score
+PHQ.items = c("phq.anhedonia_numeric",
+              "phq.depressed_mood_numeric",
+              "phq.sleep_change_numeric",
+              "phq.little_energy_numeric",
+              "phq.eating_problems_numeric",
+              "phq.worthlessness_numeric",
+              "phq.concentration_problems_numeric",
+              "phq.motor_problems_numeric",
+              "phq.suicide_ideation_numeric")
+
+#list of categorical items
+cat.items <- c("phq.anhedonia.cat",
+             "phq.depressed_mood.cat",       
+             "phq.sleep_change.cat",
+             "phq.little_energy.cat",
+             "phq.eating_problems.cat",
+             "phq.worthlessness.cat",
+             "phq.concentration_problems.cat",
+             "phq.motor_problems.cat",
+             "phq.suicide_ideation.cat",
+             "gad.feeling_anxious.cat",
+             "gad.control_worrying.cat",
+             "gad.worry_toomuch.cat",
+             "gad.trouble_relaxing.cat", 
+             "gad.restless.cat", 
+             "gad.irritable.cat",
+             "gad.feeling_afraid.cat")
+
+cat.items.phq <- c("phq.anhedonia.cat",
+             "phq.depressed_mood.cat",       
+             "phq.sleep_change.cat",
+             "phq.little_energy.cat",
+             "phq.eating_problems.cat",
+             "phq.worthlessness.cat",
+             "phq.concentration_problems.cat",
+             "phq.motor_problems.cat",
+             "phq.suicide_ideation.cat")
+
+cat.items.gad <- c(
+             "gad.feeling_anxious.cat",
+             "gad.control_worrying.cat",
+             "gad.worry_toomuch.cat",
+             "gad.trouble_relaxing.cat", 
+             "gad.restless.cat", 
+             "gad.irritable.cat",
+             "gad.feeling_afraid.cat")
+
+
+
+#categorical items labeled for endorsement plot 
+cat.items.labelled <- c("phq.anhedonia.cat.labelled",
+             "phq.depressed_mood.cat.labelled",       
+             "phq.sleep_change.cat.labelled",
+             "phq.little_energy.cat.labelled",
+             "phq.eating_problems.cat.labelled",
+             "phq.worthlessness.cat.labelled",
+             "phq.concentration_problems.cat.labelled",
+             "phq.motor_problems.cat.labelled",
+             "phq.suicide_ideation.cat.labelled",
+             "gad.feeling_anxious.cat.labelled",
+             "gad.control_worrying.cat.labelled",
+             "gad.worry_toomuch.cat.labelled",
+             "gad.trouble_relaxing.cat.labelled", 
+             "gad.restless.cat.labelled", 
+             "gad.irritable.cat.labelled",
+             "gad.feeling_afraid.cat.labelled")
+
+#create data frame that doesn't include "worrying too much" item
+ALL.items.full.withoutworry <- c("phq.anhedonia",
+                                 "phq.depressed_mood",
+                                 "phq.sleep_change",
+                                 "phq.little_energy",
+                                 "phq.eating_problems",
+                                 "phq.worthlessness",
+                                 "phq.concentration_problems",
+                                 "phq.motor_problems",
+                                 "phq.suicide_ideation",
+                                 "gad.feeling_anxious",
+                                 "gad.control_worrying",
+                                 "gad.trouble_relaxing", 
+                                 "gad.restless", 
+                                 "gad.irritable",
+                                 "gad.feeling_afraid")
+
+#create data frame that doesn't include "concentration problems" item
+ALL.items.full.withoutconcentration <- c("phq.anhedonia",
+                                 "phq.depressed_mood",
+                                 "phq.sleep_change",
+                                 "phq.little_energy",
+                                 "phq.eating_problems",
+                                 "phq.worthlessness",
+                                 "phq.motor_problems",
+                                 "phq.suicide_ideation",
+                                 "gad.feeling_anxious",
+                                 "gad.control_worrying",
+                                 "gad.trouble_relaxing", 
+                                 "gad.restless", 
+                                 "gad.irritable",
+                                 "gad.feeling_afraid")
+
+#create data frame that doesn't include "concentration problems" and "irritability" item
+ALL.items.full.withoutirritability <- c("phq.anhedonia",
+                                 "phq.depressed_mood",
+                                 "phq.sleep_change",
+                                 "phq.little_energy",
+                                 "phq.eating_problems",
+                                 "phq.worthlessness",
+                                 "phq.motor_problems",
+                                 "phq.suicide_ideation",
+                                 "gad.feeling_anxious",
+                                 "gad.control_worrying",
+                                 "gad.trouble_relaxing", 
+                                 "gad.restless",
+                                 "gad.feeling_afraid")
+
+#continuous variables for descriptives
+continuous.variables <- c("PHQ.total.score", 
+                          "GAD.total.score", 
+                          "age")
+```
+
+```{r read in data and check variable names, include=FALSE}
+dat <- readRDS(file = paste0(data_path, "data_formatted_FA.rds"))
+colnames(dat)
+```
+
+## Create data sets with just men/women
+```{r datasets for males and males}
+data.female <- dat %>% filter(sex == "Female")
+data.male <- dat %>% filter (sex == "Male")
+```
+
+# **Age and sex-related variability in the presentation of PHQ and GAD items**
+
+### Create age/10 variable 
+```{r divide age by 10}
+#this makes the OR more interpretable as you think of increase/decrease per 10 years rather than per year
+dat <- dat %>%
+  mutate(
+    age_divided = 
+      (age)/10
+  )
+colnames(dat)
+```
+
+## Logistic regressions for age
+### Logistic regressions for PHQ items - age divided, sex, PHQ total score, GAD total score 
+
+```{r create loop to run all logistic regressions for phq items}
+logistic.phq.stats.sex <- list() # create empty list to put statistics into
+logistic.phq.stats.age <- list() # create empty list to put statistics into
+
+for (i in 1:length(cat.items.phq))
+{ cat(i)
+  # create the logistic regression formula to be used for each categorical phq9 item
+  logistic.formula.phq <- as.formula(sprintf("%s ~ age_divided + sex + PHQ.total.score + GAD.total.score + highest_education", cat.items.phq[i]))
+  
+  # run the regression
+  logistic.reg.phq <- glm(logistic.formula.phq, data = dat, family = "binomial")
+  
+  # call the tidy output for sex
+  logistic.reg.phq.output.sex <- broom::tidy(logistic.reg.phq, conf.int = TRUE, exponentiate = TRUE, conf.level = 0.95)[-c(1,2,4:8),] %>% #remove all rows except sex
+    dplyr::rename(
+           OR = estimate,
+           OR.CI.lower = conf.low,
+           OR.CI.upper = conf.high)
+  
+  # call the tidy output for age
+  logistic.reg.phq.output.age <- broom::tidy(logistic.reg.phq, conf.int = TRUE, exponentiate = TRUE, conf.level = 0.95)[-c(1,3:8),] %>% #remove all rows except age
+    dplyr::rename(
+           OR = estimate,
+           OR.CI.lower = conf.low,
+           OR.CI.upper = conf.high)
+  
+  # feed it back into the original empty lists
+  logistic.phq.stats.sex[[i]] <- logistic.reg.phq.output.sex
+  logistic.phq.stats.age[[i]] <- logistic.reg.phq.output.age
+  
+}
+
+# set the names of the list to match the variable names
+names(logistic.phq.stats.sex) <- cat.items.phq
+names(logistic.phq.stats.age) <- cat.items.phq
+```
+
+## Call statistics from loop
+
+```{r call statistics for all phq regressions, include=FALSE}
+#sex
+for (i in 1:length(cat.items.phq))
+{ 
+  assign(paste0("log.", names(logistic.phq.stats.sex[i]), ".sex"), as.tibble(logistic.phq.stats.sex[[i]]))
+}
+
+#age
+for (i in 1:length(cat.items.phq))
+{ 
+  assign(paste0("log.", names(logistic.phq.stats.age[i]), ".age"), as.tibble(logistic.phq.stats.age[[i]]))
+}
+```
+
+Join table rows together from the PHQ regression stats 
+```{r join datasets to make forest plot}
+# bind all the PHQ/age rows together
+ALL_CI_PHQ.age <- bind_rows(log.phq.anhedonia.cat.age, 
+                            log.phq.depressed_mood.cat.age, 
+                            log.phq.sleep_change.cat.age, 
+                            log.phq.little_energy.cat.age, 
+                            log.phq.eating_problems.cat.age, 
+                            log.phq.worthlessness.cat.age, 
+                            log.phq.concentration_problems.cat.age, 
+                            log.phq.motor_problems.cat.age, 
+                            log.phq.suicide_ideation.cat.age)
+
+# add a column to show the disorder and symptom names
+ALL_CI_PHQ.age <- ALL_CI_PHQ.age %>%
+  mutate(disorder = "MDD") %>%
+  mutate(symptom = c("Anhedonia", 
+                     "Depressed mood", 
+                     "Sleep change", 
+                     "Little energy", 
+                     "Weight or appetite problems", 
+                     "Worthlessness", 
+                     "Concentration problems", 
+                     "Motor problems",
+                     "Suicide ideation"))
+
+#bind all the PHQ/sex rows together
+ALL_CI_PHQ.sex <- bind_rows(log.phq.anhedonia.cat.sex, 
+                            log.phq.depressed_mood.cat.sex, 
+                            log.phq.sleep_change.cat.sex, 
+                            log.phq.little_energy.cat.sex, 
+                            log.phq.eating_problems.cat.sex, 
+                            log.phq.worthlessness.cat.sex, 
+                            log.phq.concentration_problems.cat.sex, 
+                            log.phq.motor_problems.cat.sex, 
+                            log.phq.suicide_ideation.cat.sex)
+
+#add a column to show the disorder
+ALL_CI_PHQ.sex <- ALL_CI_PHQ.sex %>%
+  mutate(disorder = "MDD") %>%
+  mutate(symptom = c("Anhedonia", 
+                     "Depressed mood", 
+                     "Sleep change", 
+                     "Little energy", 
+                     "Weight or appetite problems", 
+                     "Worthlessness", 
+                     "Concentration problems", 
+                     "Motor problems",
+                     "Suicide ideation"))
+```
+
+```{r create loop to run all logistic regressions for gad items}
+logistic.gad.stats.sex <- list() # create empty list to put statistics into
+logistic.gad.stats.age <- list() # create empty list to put statistics into
+
+for (i in 1:length(cat.items.gad))
+{ cat(i)
+  # create the logistic regression formula to be used for each categorical gad9 item
+  logistic.formula.gad <- as.formula(sprintf("%s ~ age_divided + sex + PHQ.total.score + GAD.total.score + highest_education", cat.items.gad[i]))
+  
+  # run the regression
+  logistic.reg.gad <- glm(logistic.formula.gad, data = dat, family = "binomial")
+  
+  # call the tidy output for sex
+  logistic.reg.gad.output.sex <- broom::tidy(logistic.reg.gad, conf.int = TRUE, exponentiate = TRUE, conf.level = 0.95)[-c(1,2,4:8),] %>% #remove all rows except sex
+    dplyr::rename(
+           OR = estimate,
+           OR.CI.lower = conf.low,
+           OR.CI.upper = conf.high)
+  
+  # call the tidy output for age
+  logistic.reg.gad.output.age <- broom::tidy(logistic.reg.gad, conf.int = TRUE, exponentiate = TRUE, conf.level = 0.95)[-c(1,3:8),] %>% #remove all rows except age
+    dplyr::rename(
+           OR = estimate,
+           OR.CI.lower = conf.low,
+           OR.CI.upper = conf.high)
+  
+  # feed it back into the original empty lists
+  logistic.gad.stats.sex[[i]] <- logistic.reg.gad.output.sex
+  logistic.gad.stats.age[[i]] <- logistic.reg.gad.output.age
+  
+}
+
+# set the names of the list to match the variable names
+names(logistic.gad.stats.sex) <- cat.items.gad
+names(logistic.gad.stats.age) <- cat.items.gad
+```
+
+## Call statistics from loop
+
+```{r call statistics for all gad regressions, include=FALSE}
+#sex
+for (i in 1:length(cat.items.gad))
+{ 
+  assign(paste0("log.", names(logistic.gad.stats.sex[i]), ".sex"), as.tibble(logistic.gad.stats.sex[[i]]))
+}
+
+#age
+for (i in 1:length(cat.items.gad))
+{ 
+  assign(paste0("log.", names(logistic.gad.stats.age[i]), ".age"), as.tibble(logistic.gad.stats.age[[i]]))
+}
+```
+
+Combine the data together
+```{r combine data for all gad symptoms}
+#bind all the GAD/age rows together
+ALL_CI_GAD.age <- bind_rows(log.gad.feeling_anxious.cat.age, 
+                            log.gad.control_worrying.cat.age, 
+                            log.gad.worry_toomuch.cat.age, 
+                            log.gad.trouble_relaxing.cat.age, 
+                            log.gad.restless.cat.age, 
+                            log.gad.irritable.cat.age, 
+                            log.gad.feeling_afraid.cat.age)
+#add in column to show the disorder
+ALL_CI_GAD.age <- ALL_CI_GAD.age %>%
+  mutate(disorder = "GAD") %>%
+  mutate(symptom = c("Feeling anxious", 
+                     "Difficulty controlling worrying", 
+                     "Worrying too much", 
+                     "Trouble relaxing", 
+                     "Restlessness", 
+                     "Irritable", 
+                     "Feeling afraid"))
+
+#bind all the GAD/sex rows together
+ALL_CI_GAD.sex <- bind_rows(log.gad.feeling_anxious.cat.sex, 
+                            log.gad.control_worrying.cat.sex, 
+                            log.gad.worry_toomuch.cat.sex, 
+                            log.gad.trouble_relaxing.cat.sex, 
+                            log.gad.restless.cat.sex, 
+                            log.gad.irritable.cat.sex, 
+                            log.gad.feeling_afraid.cat.sex)
+#add in column to show the disorder
+ALL_CI_GAD.sex <- ALL_CI_GAD.sex %>%
+  mutate(disorder = "GAD") %>%
+  mutate(symptom = c("Feeling anxious", 
+                     "Difficulty controlling worrying", 
+                     "Worrying too much", 
+                     "Trouble relaxing", 
+                     "Restlessness", 
+                     "Irritable", 
+                     "Feeling afraid"))
+```
+
+
+Bind all the rows of the tables together for age and sex, and then order according to OR
+```{r combine all symptoms and reorder them}
+#bind all age rows together
+ALL_CI.age <- bind_rows(ALL_CI_GAD.age, ALL_CI_PHQ.age)
+
+ALL_CI.age <- ALL_CI.age %>%
+  mutate(p.value.adjusted = 
+           p.adjust(p.value, 
+                    method = "fdr",
+                    n = 16)) %>% #calculated separately at only doing 16 comparisons
+  mutate(term = "Age/10") # rename the term
+ 
+#order
+ALL_CI.age.ordered <- arrange(ALL_CI.age, desc(OR))
+
+#bind all sex rows together
+ALL_CI.sex <- bind_rows(ALL_CI_GAD.sex, ALL_CI_PHQ.sex)
+
+ALL_CI.sex <- ALL_CI.sex %>%
+  mutate(p.value.adjusted = 
+           p.adjust(p.value, 
+                    method = "fdr",
+                    n = 16))  %>% #calculated separately at only doing 16 comparisons
+ mutate(term = "Sex (Female)") 
+
+#order
+ALL_CI.sex.ordered <- arrange(ALL_CI.sex, desc(OR))
+
+#bind all rows together 
+ALL_CI <- bind_rows(ALL_CI.age, ALL_CI.sex)
+
+#add significance variable
+ALL_CI <- ALL_CI %>%
+  mutate(
+    Significant.raw = 
+      if_else(
+        p.value.adjusted < 0.05, 
+        1,
+        0
+      )
+  )
+#turn into factor
+ALL_CI <- ALL_CI %>%
+  mutate(Significant = 
+  recode_factor(Significant.raw,
+    `1` = "Significant",
+    `0` = "Non-significant"
+      )
+  )
+
+#order
+ALL_CI.ordered <- arrange(ALL_CI, desc(OR)) #ordered by age variables 
+```
+
+Make the symptom into a factor with levels that reflect the PHQ and GAD symptoms
+```{r reorder levels of symptoms}
+levels <- paste(ALL_CI.sex.ordered$symptom)
+#make symptom variable in age data table
+ALL_CI.age.ordered$symptom <- factor(ALL_CI.age.ordered$symptom,
+                                     levels = paste(ALL_CI.age.ordered$symptom,
+                                                    sep = ","))
+#make symptom variable in sex data table
+ALL_CI.sex.ordered$symptom <- factor(ALL_CI.sex.ordered$symptom,
+                                     levels = paste(ALL_CI.sex.ordered$symptom,
+                                                    sep = ","))
+
+#make symptom variable in sex data table
+ALL_CI.ordered$symptom <- factor(ALL_CI.ordered$symptom,
+                                     levels = paste(levels,
+                                                    sep = ","))
+
+kable(ALL_CI.ordered) 
+```
+
+## Age and sex plots {.tabset .tabset-fade}
+
+## Combined age and sex related variability 
+```{r joint ggplot of age and sex variation}
+combined_symptoms_plot <- ggplot(
+  ALL_CI.ordered,
+  aes(x = symptom,
+      y = OR,
+      ymin = OR.CI.lower,
+      ymax = OR.CI.upper,
+      colour = term)
+  ) +
+  scale_fill_manual(values = palette3) +
+  scale_color_manual(values = palette3) +
+  scale_shape_manual(values = c(19, 21)) +
+  geom_pointrange(aes(shape = Significant), position = position_dodge(width = 0.7)) +
+  labs(y = "OR (95% CI)",
+       x = "Symptom",
+       title = "Age and sex-related variability in PHQ-9 and GAD-7 symptoms",
+       subtitle = paste("N(Total) = ", length(dat$PHQ.total.score),
+                        "; N(Female) = ", sum(!is.na(dat$PHQ.total.score[dat$sex=="Female"])),
+                        "; N(Male) = ", sum(!is.na(dat$PHQ.total.score[dat$sex=="Male"])), sep = ""),
+       color = "",
+       shape = "") +
+  theme(panel.grid.major.x = element_line(size = 0.5,
+                                          linetype = 'dashed',
+                                          colour = "gray"),
+        plot.title = element_text(size = 15, face = "bold", hjust=0.5),
+        axis.title.x = element_text(size=12,face="bold"),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(colour = "black", size = 9),
+        axis.text.y = element_text(colour = "black", size = 12),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        panel.background = element_blank(),
+        legend.position = "bottom") +
+  geom_hline(linetype = "dashed", yintercept = 1) +
+  scale_y_continuous(trans = log10_trans(), breaks=c(0.4, 0.6, 0.8, 1, 1.2, 1.4, 1.6, 1.8, 2)) +
+  coord_flip()
+
+combined_symptoms_plot
+```
+
+# **Age and sex related variability for the identified factors**
+
+## Create correlation matrix of each sum score and factor score 
+
+```{r create data frame for factors correlation matrix}
+factor.sum.score.items <- c("PHQ.total.score",
+                           "GAD.total.score",
+                           "worry",
+                           "mood",
+                           "somatic",
+                           "motor")
+
+factor.sum.score.df <- as.data.frame(dat [,factor.sum.score.items])  #create your dataframe with the sum scores and factor scores 
+
+is.data.frame(factor.sum.score.df)  #check that it is a dataframe 
+
+colnames(factor.sum.score.df) <- c("PHQ sum score",   #Add in the names you would like for your variables
+                                 "GAD sum score", 
+                                 "Worry factor score", 
+                                 "Mood factor score", 
+                                 "Somatic factor score",
+                                 "Motor factor score")
+```
+
+```{r correlation matrix for factor scores and sum scores}
+factor.sum.score.matrix <- cor(factor.sum.score.df, 
+                               method = "pearson", 
+                               use = "complete.obs")
+factor.sum.score.matrix 
+```
+
+```{r heat map for factor and sum scores}
+# Reorder the correlation matrix
+cor_matrix_factorsum <- reorder_cor_matrix(factor.sum.score.matrix)
+  
+#melt the values
+metled_cor_matrix_factorsum <- melt(cor_matrix_factorsum, na.rm = TRUE)
+metled_cor_matrix_factorsum
+
+#correlation heat map
+factorsum_correlation_heat_map <- ggplot(metled_cor_matrix_factorsum, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white",
+   midpoint = 0, limit = c(-1,1), space = "Lab",
+    name="Pearson\nCorrelation") +
+  theme_minimal() +
+  labs(y = "Items",
+       x = "Items",
+       title = "Correlation heat map for factor scores and sum scores"
+       )+
+ theme(axis.text.x = element_text(angle = 45, vjust = 1,
+    size = 12, hjust = 1))+
+ coord_fixed() +
+  geom_text(aes(Var2, Var1, label = round(value, digits = 2)), color = "black", size = 3)
+
+factorsum_correlation_heat_map
+```
+
+## Linear regressions for factors - age_divided + sex + PHQ.total.score + GAD.total.score + highest_education
+
+R-squared is a goodness-of-fit measure for linear regression models. 
+This statistic indicates the percentage of the variance in the dependent variable that the independent variables explain collectively. 
+```{r linear regression models for factor scores}
+#Worry factor scores
+lin.worry_factor <- lm(worry ~ age_divided + sex + PHQ.total.score + GAD.total.score + highest_education,
+              data = dat)
+summary(lin.worry_factor ) #standard summary of model
+CI.lin.worry_factor <- tidy(lin.worry_factor, conf.int = TRUE, exponentiate = TRUE) #tidy summary with confidence intervals
+CI.lin.worry_factor <- add_column(CI.lin.worry_factor, #add column to indicate the factor
+  factor = "Worry symptoms")
+CI.lin.worry_factor #previouslt used OR.log.motor_factor <- exp(coef(log.motor_factor.endorsement)) to get OR
+CI.lin.worry_factor.age <- CI.lin.worry_factor[2,1:8]  
+CI.lin.worry_factor.age
+CI.lin.worry_factor.sex <- CI.lin.worry_factor[3,1:8] 
+CI.lin.worry_factor.sex
+
+#Mood factor scores
+lin.mood_factor <- lm(mood ~ age_divided + sex + PHQ.total.score + GAD.total.score + highest_education,
+              data = dat)
+summary(lin.mood_factor ) #standard summary of model
+CI.lin.mood_factor <- tidy(lin.mood_factor, conf.int = TRUE, exponentiate = TRUE) #tidy summary with confidence intervals
+CI.lin.mood_factor <- add_column(CI.lin.mood_factor, #add column to indicate the factor
+  factor = "Mood symptoms")
+CI.lin.mood_factor 
+CI.lin.mood_factor.age <- CI.lin.mood_factor[2,1:8]  
+CI.lin.mood_factor.age
+CI.lin.mood_factor.sex <- CI.lin.mood_factor[3,1:8]  
+CI.lin.mood_factor.sex
+
+#Somatic factor scores
+lin.somatic_factor <- lm(somatic ~ age_divided + sex + PHQ.total.score + GAD.total.score + highest_education,
+              data = dat)
+summary(lin.somatic_factor ) #standard summary of model
+CI.lin.somatic_factor <- tidy(lin.somatic_factor, conf.int = TRUE, exponentiate = TRUE) #tidy summary with confidence intervals
+CI.lin.somatic_factor <- add_column(CI.lin.somatic_factor, #add column to indicate the factor
+  factor = "Somatic symptoms")
+CI.lin.somatic_factor 
+CI.lin.somatic_factor.age <- CI.lin.somatic_factor[2,1:8]  
+CI.lin.somatic_factor.age
+CI.lin.somatic_factor.sex <- CI.lin.somatic_factor[3,1:8]  
+CI.lin.somatic_factor.sex
+
+#Motor factor scores
+lin.motor_factor <- lm(motor ~ age_divided + sex + PHQ.total.score + GAD.total.score + highest_education,
+              data = dat)
+summary(lin.motor_factor ) #standard summary of model
+CI.lin.motor_factor <- tidy(lin.motor_factor, conf.int = TRUE, exponentiate = TRUE) #tidy summary with confidence intervals
+CI.lin.motor_factor <- add_column(CI.lin.motor_factor, #add column to indicate the factor
+  factor = "Motor symptoms")
+CI.lin.motor_factor 
+CI.lin.motor_factor.age <- CI.lin.motor_factor[2,1:8]  
+CI.lin.motor_factor.age
+CI.lin.motor_factor.sex <- CI.lin.motor_factor[3,1:8]  
+CI.lin.motor_factor.sex
+```
+
+Combine rows of CIs
+```{r combine datasets }
+#bind all age rows together
+ALL_CI_factor.age <- bind_rows(CI.lin.mood_factor.age, 
+                               CI.lin.worry_factor.age, 
+                               CI.lin.somatic_factor.age, 
+                               CI.lin.motor_factor.age)
+#pvalue correction
+ALL_CI_factor.age <- ALL_CI_factor.age %>%
+  mutate(p.value.adjusted = 
+           p.adjust(p.value, 
+                    method = "fdr",
+                    n = 8)) #calculated separately at only doing 8comparisons
+#rename term
+ALL_CI_factor.age  <- ALL_CI_factor.age %>%
+  mutate(
+    term = 
+      "Age/10"
+  )
+
+#order
+ALL_CI_factor.age.ordered <- 
+  arrange(ALL_CI_factor.age, desc(estimate))
+
+
+#bind all sex rows together
+ALL_CI_factor.sex <- bind_rows(CI.lin.mood_factor.sex, 
+                               CI.lin.worry_factor.sex, 
+                               CI.lin.somatic_factor.sex, 
+                               CI.lin.motor_factor.sex)
+#adjust pvalue
+ALL_CI_factor.sex <- ALL_CI_factor.sex %>%
+  mutate(p.value.adjusted = 
+           p.adjust(p.value, 
+                    method = "fdr",
+                    n = 16)) #calculated separately at only doing 16 comparisons
+#rename term
+ALL_CI_factor.sex <- ALL_CI_factor.sex %>%
+  mutate(
+    term = 
+      "Sex (Female)"
+  )
+#order
+ALL_CI_factor.sex.ordered <- 
+  arrange(ALL_CI_factor.sex, desc(estimate))
+
+#bind all rows together 
+ALL_CI_factor <- bind_rows(ALL_CI_factor.age, ALL_CI_factor.sex)
+ALL_CI_factor 
+
+#add significance variable
+ALL_CI_factor <- ALL_CI_factor %>%
+  mutate(
+    Significant.raw = 
+      if_else(
+        p.value.adjusted < 0.05, 
+        1,
+        0
+      )
+  )
+#turn into factor
+ALL_CI_factor <- ALL_CI_factor %>%
+  mutate(Significant = 
+  recode_factor(Significant.raw,
+    `1` = "Significant",
+    `0` = "Non-significant"
+      )
+  )
+
+#order
+ALL_CI_factor.ordered <- arrange(ALL_CI_factor, desc(estimate)) #ordered by age variables 
+kable(ALL_CI_factor.ordered)
+```
+
+Make the symptom factor variable into a factor
+```{r make the factor variable into a factor}
+levels_factor <- ALL_CI_factor.sex.ordered$factor
+
+ALL_CI_factor.age.ordered$factor <- factor(ALL_CI_factor.age.ordered$factor, 
+                                           levels = paste(ALL_CI_factor.age.ordered$factor, 
+                                                          sep = ","))
+
+ALL_CI_factor.sex.ordered$factor <- factor(ALL_CI_factor.sex.ordered$factor, 
+                                           levels = paste(ALL_CI_factor.sex.ordered$factor, 
+                                                          sep = ","))
+
+ALL_CI_factor.ordered$factor <- factor(ALL_CI_factor.ordered$factor, 
+                                           levels = paste(levels_factor, 
+                                                          sep = ","))
+
+```
+
+## Factor plots  {.tabset .tabset-fade}
+
+### Combined 
+```{r combined factors plot}
+combined_factors_plot <- ggplot(
+  ALL_CI_factor.ordered,
+  aes(x = factor,
+      y = estimate,
+      ymin = conf.low,
+      ymax = conf.high,
+      colour = term)
+  ) +
+  scale_fill_manual(values = palette3) +
+  scale_color_manual(values = palette3) + 
+  scale_shape_manual(values = c(19, 21)) +
+  geom_pointrange(aes(shape = Significant), position = position_dodge2(width = 0.3), size = 0.8) +
+  labs(y = "Standardised Estimate (95% CI)",
+       x = "Symptom",
+       title = "Age and sex-related variability in anxiety and depression factors",
+       subtitle = paste("N(Total) = ", length(dat$PHQ.total.score),
+                        "; N(Female) = ", sum(!is.na(dat$PHQ.total.score[dat$sex=="Female"])),
+                        "; N(Male) = ", sum(!is.na(dat$PHQ.total.score[dat$sex=="Male"])), sep = ""),
+       color = "",
+       shape = "") +
+  theme(panel.grid.major.x = element_line(size = 0.5,
+                                          linetype = 'dashed',
+                                          colour = "gray"),
+        plot.title = element_text(size = 15, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(size = 12, face = "bold"),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(colour = "black", size = 9),
+        axis.text.y = element_text(colour = "black", size = 12),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        panel.background = element_blank(),
+        legend.position = "bottom") +
+  geom_hline(linetype = "dashed", yintercept = 0) +
+ coord_flip()
+combined_factors_plot
+```
+
+# Panel plots
+
+## Age and sex variation in symptoms and factors
+```{r panel plots for factor and symptoms}
+library(ggpubr)
+combined_symptoms_plot <- combined_symptoms_plot + 
+  labs(title = "Symptom level") + 
+  theme(plot.title = element_text(size = 12,face = "bold"),
+        axis.title.x = element_text(size = 10, face = "bold"))
+
+combined_factors_plot <- combined_factors_plot + 
+  labs(title = "Factor level") + 
+  theme(plot.title = element_text(size = 12,face = "bold"),
+        axis.title.x = element_text(size = 10, face = "bold"))
+  
+age_sex_symptom_factor_plot <- ggarrange(combined_symptoms_plot, combined_factors_plot + font("x.text", size = 10),
+                    ncol = 2, nrow = 1, labels = c("A", "B"),
+                    common.legend = TRUE,
+                    legend = "bottom")
+age_sex_symptom_factor_plot
+
+#png
+ggsave(
+  "combined.final_plot_post_hoc_SES.png",
+  plot = age_sex_symptom_factor_plot,
+  device = "png",
+  path = paste0(plots_path,"age_and_sex/"),
+  width = 12,
+  height = 6
+)
+```
+

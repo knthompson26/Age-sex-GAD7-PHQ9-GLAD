@@ -50,7 +50,6 @@ library(reshape2)
 library(lavaan)
 library(mlogit)
 library(foreign)
-library(sjPlot)
 library(polycor)
 library(REdaS)
 library(scales)
@@ -231,10 +230,29 @@ continuous.variables <- c("PHQ.total.score",
                           "age")
 ```
 
-## Create data sets with just men/women
-```{r datasets for males and males}
-data.female <- dat %>% filter(sex == "Female")
-data.male <- dat %>% filter (sex == "Male")
+# *Define the sample*
+
+```{r prepandemic indicator}
+prepandemic.31.Jan = FALSE
+prepandemic.01.Mar = FALSE
+prepandemic.23.Mar = FALSE
+```
+
+```{r redefining prepandemic sample}
+if (prepandemic.31.Jan == TRUE){
+  dat <- dat %>%
+    filter(prepandemic_january_31 == "Sign up before 31st January")
+}
+
+if (prepandemic.01.Mar == TRUE){
+  dat <- dat %>%
+    filter(prepandemic_march_1 == "Sign up before 1st March")
+}
+
+if (prepandemic.23.Mar == TRUE){
+  dat <- dat %>%
+    filter(prepandemic_march_23 == "Sign up before 23rd March")
+}
 ```
 
 # **Preparation for factor analyses**
@@ -277,6 +295,8 @@ dim(data.cfa)
 
 # **Exploratory factor analysis (EFA)**
 
+*All objects that are saved are from the original analysis - to run the prepandemic sensitivity analysis, no objects will be saved* 
+
 ## Polychoric correlation matrix
 ```{r create data frame for correlation matrix}
 ALL.items.full.df <- as.data.frame(exploratory.group [,ALL.items.full])  #create your dataframe with the items and group that you want
@@ -304,16 +324,16 @@ head(ALL.items.full.df) #Have a look at the dataframe
 
 ## Create polychoric matrix for EFA
 ```{r polychoric correlation matrix for EFA}
-# polycor_matrix <- polycor::hetcor(
-#   ALL.items.full.df,
-# #  ML = TRUE, # maximum likelihood calculation (This can take a few minutes to run), include this if you are using ML in FA
-#   use = "pairwise.complete.obs", # Use pairwise complete observations to maximise n
-#   digits = 2 # print two digits after the floating point
-#   )
-# 
+polycor_matrix <- polycor::hetcor(
+  ALL.items.full.df,
+#  ML = TRUE, # maximum likelihood calculation (This can take a few minutes to run), include this if you are using ML in FA
+  use = "pairwise.complete.obs", # Use pairwise complete observations to maximise n
+  digits = 2 # print two digits after the floating point
+  )
+
 # #save object so no need to re-run
 # saveRDS(polycor_matrix, file = paste0(saved_r_objects_path, "polycor_matrix.rds"))
-polycor_matrix <- readRDS(paste0(saved_r_objects_path, "polycor_matrix.rds"))
+# polycor_matrix <- readRDS(paste0(saved_r_objects_path, "polycor_matrix.rds"))
 
 polycor_matrix #have a look at the matrix
 ```
@@ -413,18 +433,19 @@ correlation_heat_map <- ggplot(metled_cor_matrix, aes(Var2, Var1, fill = value))
     size = 12, hjust = 1))+
  coord_fixed() +
   geom_text(aes(Var2, Var1, label = round(value, digits = 2)), color = "black", size = 3)
-correlation_heat_map
 
 correlation_heat_map
+```
 
-#save in png
-ggsave(
-  "correlation_heat_map.png",
-  plot = correlation_heat_map,
-  device = "png",
-  path = paste0(plots_path, "correlation_heat_map/"),
-  width = 9,
-  height = 9)
+```{r save heat map}
+# #save in png
+# ggsave(
+#   "correlation_heat_map.png",
+#   plot = correlation_heat_map,
+#   device = "png",
+#   path = paste0(plots_path, "correlation_heat_map/"),
+#   width = 9,
+#   height = 9)
 ```
 
 ## Polychoric correlation matrix without "worrying too much" item
@@ -453,15 +474,15 @@ colnames(ALL.items.full.df.withoutworry) <- c("Anhedonia",
                                               "Feeling afraid")
 ALL.items.full.df.withoutworry
 
-# #create correlation matrix for dataframe without worry item
-# polycor_matrix.withoutworry <- polycor::hetcor(ALL.items.full.df.withoutworry,
-#                                              #  ML = TRUE,
-#                                                use = "pairwise.complete.obs",
-#                                                digits = 2)
-# 
+#create correlation matrix for dataframe without worry item
+polycor_matrix.withoutworry <- polycor::hetcor(ALL.items.full.df.withoutworry,
+                                             #  ML = TRUE,
+                                               use = "pairwise.complete.obs",
+                                               digits = 2)
+
 # #save object so no need to re-run
 # saveRDS(polycor_matrix.withoutworry, file = paste0(saved_r_objects_path, "polycor_matrix.withoutworry.rds"))
-polycor_matrix.withoutworry <- readRDS(paste0(saved_r_objects_path, "polycor_matrix.withoutworry.rds"))
+# polycor_matrix.withoutworry <- readRDS(paste0(saved_r_objects_path, "polycor_matrix.withoutworry.rds"))
 
 polycor_matrix.withoutworry
 ```
@@ -528,16 +549,18 @@ correlation_heat_map_without_worry <- ggplot(metled_cor_matrix, aes(Var2, Var1, 
   geom_text(aes(Var2, Var1, label = round(value, digits = 2)), color = "black", size = 3)
 
 correlation_heat_map_without_worry
+```
 
-#save in png
-ggsave(
-  "correlation_heat_map_without_worry.png",
-  plot = correlation_heat_map_without_worry,
-  device = "png",
-  path = paste0(plots_path, "correlation_heat_map/"),
-  width = 9,
-  height = 9
-)
+```{r save heat map without worry}
+# #save 
+# ggsave(
+#   "correlation_heat_map_without_worry.png",
+#   plot = correlation_heat_map_without_worry,
+#   device = "png",
+#   path = paste0(plots_path, "correlation_heat_map/"),
+#   width = 9,
+#   height = 9
+# )
 ```
 
 ## Combine two heatmaps together in panel graph - for supplementary material
@@ -565,15 +588,15 @@ correlation_heat_map_combined <- ggarrange(correlation_heat_map,
                                            legend = "right")
 correlation_heat_map_combined
 
-#png
-ggsave(
-  "correlation_heat_map_combined.png",
-  plot = correlation_heat_map_combined,
-  device = "png",
-  path = paste0(plots_path, "correlation_heat_map/"),
-  width = 16,
-  height = 7
-)
+# #png
+# ggsave(
+#   "correlation_heat_map_combined.png",
+#   plot = correlation_heat_map_combined,
+#   device = "png",
+#   path = paste0(plots_path, "correlation_heat_map/"),
+#   width = 16,
+#   height = 7
+# )
 ```
 
 ## Testing for right amount of factors
@@ -582,17 +605,17 @@ ggsave(
 Used to estimate how many factors are in our data. This can then be used as a starting point for our EFA. 
 VSS fits the very simple structure of a factor pattern matrix (correlations between the variables and the factors) to the original correlation matrix.
 ```{r EFA very simple structure (VSS)}
-# fa.vss <- psych::vss(x = polycor_matrix$correlations, # Correlation matrix
-#            n = 3, # assumed number of factors
-#            rotate = "oblimin", # Rotation type: oblique or orthogonal
-#            fm = "wls", #factoring method: "wls" = weighted least squares, "mle" = Maximum Likelihood 
-#            n.obs = max(polycor_matrix$n), # number of observations/participants
-#            cor = "poly" # Type of correlation matrix
-#            )
-# 
+fa.vss <- psych::vss(x = polycor_matrix$correlations, # Correlation matrix
+           n = 3, # assumed number of factors
+           rotate = "oblimin", # Rotation type: oblique or orthogonal
+           fm = "wls", #factoring method: "wls" = weighted least squares, "mle" = Maximum Likelihood
+           n.obs = max(polycor_matrix$n), # number of observations/participants
+           cor = "poly" # Type of correlation matrix
+           )
+
 # #save object so no need to re-run
-# saveRDS(fa.vss, file = "paste0(saved_r_objects_path,"fa.vss.rds"))
-fa.vss <- readRDS(paste0(saved_r_objects_path,"fa.vss.rds"))
+# saveRDS(fa.vss, file = paste0(saved_r_objects_path,"fa.vss.rds"))
+# fa.vss <- readRDS(paste0(saved_r_objects_path,"fa.vss.rds"))
 
 #also gives MAP criterion
 fa.vss
@@ -602,17 +625,17 @@ fa.vss
 Used to estimate how many factors are in our data. This can then be used as a starting point for our EFA. 
 Essentially each eigenvalue (which represents the size of the factor) is compared against an eigenvalue for the corresponding factor in many randomly generated data sets that have the same characteristics as the data being analysed.
 ```{r EFA parallel factors technique}
-# fa.parallel <- fa.parallel(x = polycor_matrix$correlations, 
-#                                       fm = "wls", #factoring method: "wls" = weighted least squares, "mle" = Maximum Likelihood 
-#                                       nfactors = 3, # assumed number of factors
-#                                       n.iter = 1000, # number of iterations
-#                                       error.bars = T, #include error bars
-#                                       cor = "poly", #polychoric correlations
-#                                       n.obs = max(polycor_matrix$n) # number of participants
-#                                       )
+fa.parallel <- fa.parallel(x = polycor_matrix$correlations,
+                                      fm = "wls", #factoring method: "wls" = weighted least squares, "mle" = Maximum Likelihood
+                                      nfactors = 3, # assumed number of factors
+                                      n.iter = 1000, # number of iterations
+                                      error.bars = T, #include error bars
+                                      cor = "poly", #polychoric correlations
+                                      n.obs = max(polycor_matrix$n) # number of participants
+                                      )
 # #save object so no need to re-run
 # saveRDS(fa.parallel, file = paste0(saved_r_objects_path, "fa.parallel.rds"))
-fa.parallel <- readRDS(paste0(saved_r_objects_path, "fa.parallel.rds"))
+# fa.parallel <- readRDS(paste0(saved_r_objects_path, "fa.parallel.rds"))
 
 fa.parallel 
 #Also gives eigenvalues 
@@ -622,17 +645,17 @@ fa.parallel
 Used to estimate how many factors are in our data. This can then be used as a starting point for our EFA. 
 VSS fits the very simple structure of a factor pattern matrix (correlations between the variables and the factors) to the original correlation matrix.
 ```{r EFA very simple structure (VSS) - without worry}
-# fa.vss.withoutworry <- psych::vss(x = polycor_matrix.withoutworry$correlations, # Correlation matrix
-#            n = 3, # assumed number of factors
-#            rotate = "oblimin", # Rotation type: oblique or orthogonal
-#            fm = "wls", #factoring method: "wls" = weighted least squares, "mle" = Maximum Likelihood 
-#            n.obs = max(polycor_matrix$n), # number of observations/participants
-#            cor = "poly" # Type of correlation matrix
-#            )
-# 
+fa.vss.withoutworry <- psych::vss(x = polycor_matrix.withoutworry$correlations, # Correlation matrix
+           n = 3, # assumed number of factors
+           rotate = "oblimin", # Rotation type: oblique or orthogonal
+           fm = "wls", #factoring method: "wls" = weighted least squares, "mle" = Maximum Likelihood
+           n.obs = max(polycor_matrix$n), # number of observations/participants
+           cor = "poly" # Type of correlation matrix
+           )
+
 # #save object so no need to re-run
 # saveRDS(fa.vss.withoutworry, file = paste0(saved_r_objects_path, "fa.vss.withoutworry.rds"))
-fa.vss.withoutworry <- readRDS(paste0(saved_r_objects_path, "fa.vss.withoutworry.rds"))
+# fa.vss.withoutworry <- readRDS(paste0(saved_r_objects_path, "fa.vss.withoutworry.rds"))
 
 #also gives MAP criterion
 fa.vss.withoutworry
@@ -640,46 +663,46 @@ plot(fa.vss.withoutworry)
 ```
 
 ```{r save vss plot without worry}
-jpeg(
-    filename = paste0(plots_path, "vss.scree.withoutworry.jpeg"),
-    width = 8,
-    height = 7,
-    units = "in",
-    res = 500)
-plot(fa.vss.withoutworry)
-dev.off()
+# jpeg(
+#     filename = paste0(plots_path, "vss.scree.withoutworry.jpeg"),
+#     width = 8,
+#     height = 7,
+#     units = "in",
+#     res = 500)
+# plot(fa.vss.withoutworry)
+# dev.off()
 ```
 
 ### EFA parallel factors technique - without worry
 Used to estimate how many factors are in our data. This can then be used as a starting point for our EFA. 
 Essentially each eigenvalue (which represents the size of the factor) is compared against an eigenvalue for the corresponding factor in many randomly generated data sets that have the same characteristics as the data being analysed.
 ```{r EFA parallel factors technique - without worry}
-# fa.parallel.withoutworry <- fa.parallel(x = polycor_matrix.withoutworry$correlations, 
-#                                       fm = "wls", #factoring method: "wls" = weighted least squares, "mle" = Maximum Likelihood 
-#                                       nfactors = 3, # assumed number of factors
-#                                       n.iter = 1000, # number of iterations
-#                                       error.bars = T, #include error bars
-#                                       cor = "poly", #polychoric correlations
-#                                       n.obs = max(polycor_matrix$n) # number of participants
-#                                       )
-# 
+fa.parallel.withoutworry <- fa.parallel(x = polycor_matrix.withoutworry$correlations,
+                                      fm = "wls", #factoring method: "wls" = weighted least squares, "mle" = Maximum Likelihood
+                                      nfactors = 3, # assumed number of factors
+                                      n.iter = 1000, # number of iterations
+                                      error.bars = T, #include error bars
+                                      cor = "poly", #polychoric correlations
+                                      n.obs = max(polycor_matrix$n) # number of participants
+                                      )
+
 # #save object so no need to re-run
 # saveRDS(fa.parallel.withoutworry, file = paste0(saved_r_objects_path, "fa.parallel.withoutworry.rds"))
-fa.parallel.withoutworry <- readRDS(paste0(saved_r_objects_path, "fa.parallel.withoutworry.rds"))
+# fa.parallel.withoutworry <- readRDS(paste0(saved_r_objects_path, "fa.parallel.withoutworry.rds"))
 
 fa.parallel.withoutworry
 #Also gives eigenvalues 
 ```
 
 ```{r save parallel plot without worry}
-jpeg(
-    filename = paste0(plots_path, "parallel.scree.withoutworry.jpeg"),
-    width = 8,
-    height = 7,
-    units = "in",
-    res = 500)
-plot(fa.parallel.withoutworry)
-dev.off()
+# jpeg(
+#     filename = paste0(plots_path, "parallel.scree.withoutworry.jpeg"),
+#     width = 8,
+#     height = 7,
+#     units = "in",
+#     res = 500)
+# plot(fa.parallel.withoutworry)
+# dev.off()
 ```
 
 ## EFA model fit 
@@ -687,19 +710,19 @@ EFA run for 1 to 6 factors, both with and without the worry item included. Full 
 
 ### 1 factor
 ```{r psych package EFA 1 factor}
-# polycor.efa.fit1 <- psych::fa(
-#                           r = polycor_matrix$correlations,
-#                           nfactors = 1, #number of factors
-#                           n.obs = max(polycor_matrix$n), #number of observations
-#                           n.iter = 1000, #Number of bootstrap interations to do in fa
-#                           rotate = "oblimin", #allows the factors to be correlated
-#                           fm = "wls", #for normal data - "ml" (maximum likelihood) is preferred, if you have skewed ordinal data, "wls" (weighted least squares) is preferred
-#                           scores = TRUE
-#   )
-# 
+polycor.efa.fit1 <- psych::fa(
+                          r = polycor_matrix$correlations,
+                          nfactors = 1, #number of factors
+                          n.obs = max(polycor_matrix$n), #number of observations
+                          n.iter = 1000, #Number of bootstrap interations to do in fa
+                          rotate = "oblimin", #allows the factors to be correlated
+                          fm = "wls", #for normal data - "ml" (maximum likelihood) is preferred, if you have skewed ordinal data, "wls" (weighted least squares) is preferred
+                          scores = TRUE
+  )
+
 # #save object so no need to re-run
 # saveRDS(polycor.efa.fit1, file = paste0(saved_r_objects_path, "polycor.efa.fit1.rds"))
-polycor.efa.fit1 <- readRDS(paste0(saved_r_objects_path, "polycor.efa.fit1.rds"))
+# polycor.efa.fit1 <- readRDS(paste0(saved_r_objects_path, "polycor.efa.fit1.rds"))
 
 #print the loadings for each factor
 polycor.efa.fit1 
@@ -710,16 +733,16 @@ print(polycor.efa.fit1$loadings, cutoff = 0.3)
 
 ### 1 factor - without worry
 ```{r 1b factor model} 
-# polycor.efa.fit1b <- psych::fa(r = polycor_matrix.withoutworry$correlations,
-#                                  nfactors = 1,
-#                                  n.obs = max(polycor_matrix.withoutworry$n),
-#                                  n.iter = 1000, 
-#                                  rotate = "oblimin",
-#                                  fm = "wls")
-# 
+polycor.efa.fit1b <- psych::fa(r = polycor_matrix.withoutworry$correlations,
+                                 nfactors = 1,
+                                 n.obs = max(polycor_matrix.withoutworry$n),
+                                 n.iter = 1000,
+                                 rotate = "oblimin",
+                                 fm = "wls")
+
 # #save object so no need to re-run
 # saveRDS(polycor.efa.fit1b, file = paste0(saved_r_objects_path, "polycor.efa.fit1b.rds"))
-polycor.efa.fit1b <- readRDS(paste0(saved_r_objects_path, "polycor.efa.fit1b.rds"))
+# polycor.efa.fit1b <- readRDS(paste0(saved_r_objects_path, "polycor.efa.fit1b.rds"))
 
 polycor.efa.fit1b 
 print(polycor.efa.fit1b$loadings, cutoff = 0.1)
@@ -751,15 +774,17 @@ print(polycor.efa.fit2$loadings, cutoff = 0.3)
 
 ### 2 factors - without worry
 ```{r 2b factor model} 
-# polycor.efa.fit2b <- psych::fa(r = polycor_matrix.withoutworry$correlations,
-#                                  nfactors = 2,
-#                                  n.obs = max(polycor_matrix.withoutworry$n),
-#                                  n.iter = 1000, 
-#                                  rotate = "oblimin",
-#                                  fm = "wls")
-# #save object so no need to re-run
-# saveRDS(polycor.efa.fit2b, file = paste0(saved_r_objects_path, "polycor.efa.fit2b.rds"))
-polycor.efa.fit2b <- readRDS(paste0(saved_r_objects_path, "polycor.efa.fit2b.rds"))
+polycor.efa.fit2b <- psych::fa(r = polycor_matrix.withoutworry$correlations,
+                                 nfactors = 2,
+                                 n.obs = max(polycor_matrix.withoutworry$n),
+                                 n.iter = 1000,
+                                 rotate = "oblimin",
+                                 fm = "wls")
+
+#save object so no need to re-run
+#saveRDS(polycor.efa.fit2b, file = paste0(saved_r_objects_path, "polycor.efa.fit2b.rds"))
+
+#polycor.efa.fit2b <- readRDS(paste0(saved_r_objects_path, "polycor.efa.fit2b.rds"))
 
 polycor.efa.fit2b 
 print(polycor.efa.fit2b$loadings, cutoff = 0.1)
@@ -791,15 +816,15 @@ print(polycor.efa.fit3$loadings, cutoff = 0.3)
 
 ### 3 factors - without worry
 ```{r 3b factor model} 
-# polycor.efa.fit3b <- psych::fa(r = polycor_matrix.withoutworry$correlations,
-#                                  nfactors = 3,
-#                                  n.obs = max(polycor_matrix.withoutworry$n),
-#                                  n.iter = 1000, 
-#                                  rotate = "oblimin",
-#                                  fm = "wls")
+polycor.efa.fit3b <- psych::fa(r = polycor_matrix.withoutworry$correlations,
+                                 nfactors = 3,
+                                 n.obs = max(polycor_matrix.withoutworry$n),
+                                 n.iter = 1000,
+                                 rotate = "oblimin",
+                                 fm = "wls")
 
 # saveRDS(polycor.efa.fit3b, file = paste0(saved_r_objects_path, "polycor.efa.fit3b.rds"))
-polycor.efa.fit3b <- readRDS(paste0(saved_r_objects_path, "polycor.efa.fit3b.rds"))
+# polycor.efa.fit3b <- readRDS(paste0(saved_r_objects_path, "polycor.efa.fit3b.rds"))
 
 polycor.efa.fit3b
 print(polycor.efa.fit3b$loadings, cutoff = 0.1)
@@ -832,16 +857,16 @@ fa.diagram(polycor.efa.fit4)
 
 ### 4 factors - without worry
 ```{r 4b factor model} 
-# polycor.efa.fit4b <- psych::fa(r = polycor_matrix.withoutworry$correlations,
-#                                  nfactors = 4,
-#                                  n.obs = max(polycor_matrix.withoutworry$n),
-#                                  n.iter = 1000, 
-#                                  rotate = "oblimin",
-#                                  fm = "wls")
-# 
+polycor.efa.fit4b <- psych::fa(r = polycor_matrix.withoutworry$correlations,
+                                 nfactors = 4,
+                                 n.obs = max(polycor_matrix.withoutworry$n),
+                                 n.iter = 1000,
+                                 rotate = "oblimin",
+                                 fm = "wls")
+
 # #save object so no need to re-run
 # saveRDS(polycor.efa.fit4b, file = paste0(saved_r_objects_path, "polycor.efa.fit4b.rds"))
-polycor.efa.fit4b <- readRDS(paste0(saved_r_objects_path, "polycor.efa.fit4b.rds"))
+#polycor.efa.fit4b <- readRDS(paste0(saved_r_objects_path, "polycor.efa.fit4b.rds"))
 
 polycor.efa.fit4b
 print(polycor.efa.fit4b$loadings, cutoff = 0.1)
@@ -874,16 +899,16 @@ psych::fa.diagram(polycor.efa.fit5)
 
 ### 5 factors - without worry
 ```{r 5b factor model} 
-# polycor.efa.fit5b <- psych::fa(r = polycor_matrix.withoutworry$correlations,
-#                                  nfactors = 5,
-#                                  n.obs = max(polycor_matrix.withoutworry$n),
-#                                  n.iter = 1000, 
-#                                  rotate = "oblimin",
-#                                  fm = "wls")
-# 
-# #save object so no need to re-run
+polycor.efa.fit5b <- psych::fa(r = polycor_matrix.withoutworry$correlations,
+                                 nfactors = 5,
+                                 n.obs = max(polycor_matrix.withoutworry$n),
+                                 n.iter = 1000,
+                                 rotate = "oblimin",
+                                 fm = "wls")
+
+#save object so no need to re-run
 # saveRDS(polycor.efa.fit5b, file = paste0(saved_r_objects_path, "polycor.efa.fit5b.rds"))
-polycor.efa.fit5b <- readRDS(paste0(saved_r_objects_path, "polycor.efa.fit5b.rds"))
+#polycor.efa.fit5b <- readRDS(paste0(saved_r_objects_path, "polycor.efa.fit5b.rds"))
 
 polycor.efa.fit5b
 print(polycor.efa.fit5b$loadings, cutoff = 0.1)
@@ -916,16 +941,16 @@ fa.diagram(polycor.efa.fit6)
 
 ### 6 factors - without worry
 ```{r 6b factor model} 
-# polycor.efa.fit6b <- psych::fa(r = polycor_matrix.withoutworry$correlations,
-#                                  nfactors = 6,
-#                                  n.obs = max(polycor_matrix.withoutworry$n),
-#                                  n.iter = 1000, 
-#                                  rotate = "oblimin",
-#                                  fm = "wls")
-# 
+polycor.efa.fit6b <- psych::fa(r = polycor_matrix.withoutworry$correlations,
+                                 nfactors = 6,
+                                 n.obs = max(polycor_matrix.withoutworry$n),
+                                 n.iter = 1000,
+                                 rotate = "oblimin",
+                                 fm = "wls")
+
 # #save object so no need to re-run
 # saveRDS(polycor.efa.fit6b, file = paste0(saved_r_objects_path, "polycor.efa.fit6b.rds"))
-polycor.efa.fit6b <- readRDS(paste0(saved_r_objects_path, "polycor.efa.fit6b.rds"))
+#polycor.efa.fit6b <- readRDS(paste0(saved_r_objects_path, "polycor.efa.fit6b.rds"))
 
 polycor.efa.fit6b
 print(polycor.efa.fit6b$loadings, cutoff = 0.1)
@@ -1157,6 +1182,13 @@ fa.diagram(polycor.efa.fit4b.without_irritability)
 **Comments: Decided that excluding both concentration problems does not improve fit.**
 
 # **Sensitivity analysis: Rerun 4 factor model (without worry) in males and females separately**
+
+## Create data sets with just men/women
+```{r datasets for males and males}
+data.female <- dat %>% filter(sex == "Female")
+data.male <- dat %>% filter (sex == "Male")
+```
+
 ## Polychoric matrix for females 
 ```{r polycor matrix for females}
 #create dataframe without worry item
@@ -1403,20 +1435,20 @@ summary(cfa.model.fit.final, fit.measures = TRUE)
 # **Factor Scores**
 Use the CFA to create factor scores for each participant -using the final cfa model
 ```{r calculating factor scores for full model}
-# factor_scores <- lavPredict(
-#   object = cfa.model.fit.final, # model of the original CFA
-#   newdata = dat, # data frame with the whole data
-#   type = "fy",
-#   method = "ML", # "EBM" Empirical Bayes Model or "ML" maximum likelihood are suggested for ordinal data
-# #  se = "standard", # standard standard errors are calculated
-#   label = TRUE,
-#   ETA = ALL.items.full.withoutworry
-#  # append.data = TRUE # append data frame and factor scores
-#   )
+factor_scores <- lavPredict(
+  object = cfa.model.fit.final, # model of the original CFA
+  newdata = dat, # data frame with the whole data
+  type = "fy",
+  method = "ML", # "EBM" Empirical Bayes Model or "ML" maximum likelihood are suggested for ordinal data
+#  se = "standard", # standard standard errors are calculated
+  label = TRUE,
+  ETA = ALL.items.full.withoutworry
+ # append.data = TRUE # append data frame and factor scores
+  )
 
 # #save object so no need to re-run
 # saveRDS(factor_scores, file = "../saved_r_objects/factor_scores.rds")
-factor_scores <- readRDS(paste0(saved_r_objects_path, "factor_scores.rds"))
+# factor_scores <- readRDS(paste0(saved_r_objects_path, "factor_scores.rds"))
 
 dim(factor_scores)
 head(factor_scores)
@@ -1428,19 +1460,33 @@ Bind the factor scores to the dataframe
 dat <- cbind(
   dat, 
   factor_scores)
+
+colnames(dat)
 ```
 
 # Save data
 
-```{r save data file}
-# save R data file
-saveRDS(object = dat, file = paste0(data_path, "data_formatted_FA.rds"))
+```{r save prepandemic data}
+if (prepandemic.31.Jan == TRUE){
+  saveRDS(object = dat, file = paste0(data_path, "data_formatted_FA_january_31.rds"))
+}
+
+if (prepandemic.01.Mar == TRUE){
+  saveRDS(object = dat, file = paste0(data_path, "data_formatted_FA_march_1.rds"))
+}
+
+if (prepandemic.23.Mar == TRUE){
+  saveRDS(object = dat, file = paste0(data_path, "data_formatted_FA_march_23.rds"))
+}
 ```
 
 
-
-
-
+```{r save data file}
+# save R data file
+if (prepandemic.31.Jan == FALSE & prepandemic.01.Mar == FALSE & prepandemic.23.Mar == FALSE){
+saveRDS(object = dat, file = paste0(data_path, "data_formatted_FA.rds"))
+}
+```
 
 
 
