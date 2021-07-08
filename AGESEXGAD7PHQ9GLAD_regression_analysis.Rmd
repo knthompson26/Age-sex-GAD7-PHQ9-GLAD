@@ -63,6 +63,17 @@ Retrieve the recent date
 date = Sys.Date()
 ```
 
+Correlation matrix functions
+```{r Correlation matrix functions}
+reorder_cor_matrix <- function(cor_matrix){
+ #Use correlation between variables as distance
+ dd <- as.dist((1-cor_matrix)/2)
+ hc <- hclust(dd)
+ cormat <-cor_matrix[hc$order, hc$order]
+ }
+```
+
+
 Define colours for plotting
 ```{r GLAD colour palette , include=FALSE}
 palette = c(
@@ -74,7 +85,7 @@ palette3 <- c("#78D9C5","#F5BE5E","#EEB6E9")
 ```
 
 ```{r source data path file}
-source("../data_paths.R")
+source("../data_paths_CH.R")
 ```
 
 ## Prepare item lists
@@ -253,10 +264,11 @@ colnames(dat)
 
 # *Define the sample*
 
+If all three are set to FALSE it runs the script on the whole sample. If you set one of them to TRUE all participants after this date are excluded from analysis
 ```{r prepandemic indicator}
 prepandemic.31.Jan = FALSE
 prepandemic.01.Mar = FALSE
-prepandemic.23.Mar = FALSE
+prepandemic.23.Mar = TRUE
 ```
 
 ```{r redefining prepandemic sample}
@@ -579,8 +591,107 @@ ALL_CI.ordered$symptom <- factor(ALL_CI.ordered$symptom,
                                      levels = paste(levels,
                                                     sep = ","))
 
-kable(ALL_CI.ordered) 
+ALL_CI.ordered
 ```
+
+```{r Format publication table}
+ALL_CI.ordered.publication <- ALL_CI.ordered %>%
+  mutate(
+    OR_rounded = round(OR, digits = 2),
+    OR.CI.lower_rounded = round(OR.CI.lower, digits = 2),
+    OR.CI.upper_rounded = round(OR.CI.upper, digits = 2),
+    P_converted = case_when(
+      p.value.adjusted < 0.001 ~ formatC(p.value.adjusted, format = "e", digits = 2),
+      p.value.adjusted >= 0.001 & p.value.adjusted < 0.01 ~ formatC(p.value.adjusted, format = "f",  digits = 3),
+      p.value.adjusted >= 0.01 ~ formatC(p.value.adjusted, format = "f", digits = 2)
+      )
+  ) %>%
+  select(
+    "Variable" = term,
+    "Disorder" = disorder,
+    "Symptom" = symptom,
+    "OR" = OR_rounded,
+    "OR 95% CI lower" = OR.CI.lower_rounded,
+    "OR 95% CI upper" = OR.CI.upper_rounded,
+    "P-value adjusted" = P_converted
+  )
+
+ALL_CI.ordered.publication
+```
+
+```{r Write publication table to excel file}
+if(prepandemic.31.Jan == FALSE | prepandemic.01.Mar == FALSE | prepandemic.23.Mar == FALSE) {
+  
+  write_rds(
+    x = ALL_CI.ordered.publication,
+    file = paste0(saved_r_objects_path,"OR_pub_table_full_sample", date, ".rds")
+    )
+  
+xlsx::write.xlsx(
+  x = ALL_CI.ordered.publication,
+  file = paste0(saved_r_objects_path,"OR_pub_table_full_sample", date, ".xlsx"),
+  sheetName = "OR_pub_table", row.names = TRUE
+  )
+}
+```
+
+Pre pandemic time points
+prepandemic.31.Jan = FALSE
+prepandemic.01.Mar = FALSE
+prepandemic.23.Mar = FALSE
+
+Save 3 different files with correct file extension
+
+```{r Write publication table to excel file prepandemic.31.Jan}
+if(prepandemic.31.Jan == TRUE) {
+  
+  write_rds(
+    x = ALL_CI.ordered.publication,
+    file = paste0(saved_r_objects_path,"OR_pub_table_prepandemic.31.Jan", date, ".rds")
+    )
+  
+xlsx::write.xlsx(
+  x = ALL_CI.ordered.publication,
+  file = paste0(saved_r_objects_path,"OR_pub_table_prepandemic.31.Jan", date, ".xlsx"),
+  sheetName = "OR_pub_table", row.names = TRUE
+  )
+}
+```
+
+```{r Write publication table to excel file prepandemic.01.Mar}
+if(prepandemic.01.Mar == TRUE) {
+  
+  write_rds(
+    x = ALL_CI.ordered.publication,
+    file = paste0(saved_r_objects_path,"OR_pub_table_prepandemic.01.Mar", date, ".rds")
+    )
+  
+  
+xlsx::write.xlsx(
+  x = ALL_CI.ordered.publication,
+  file = paste0(saved_r_objects_path,"OR_pub_table_prepandemic.01.Mar", date, ".xlsx"),
+  sheetName = "OR_pub_table", row.names = TRUE
+  )
+}
+```
+
+```{r Write publication table to excel file prepandemic.23.Mar}
+if(prepandemic.31.Jan == TRUE) {
+  
+   write_rds(
+    x = ALL_CI.ordered.publication,
+    file = paste0(saved_r_objects_path,"OR_pub_table_prepandemic.23.Mar", date, ".rds")
+    )
+  
+xlsx::write.xlsx(
+  x = ALL_CI.ordered.publication,
+  file = paste0(saved_r_objects_path,"OR_pub_table_prepandemic.23.Mar", date, ".xlsx"),
+  sheetName = "OR_pub_table", row.names = TRUE
+  )
+}
+```
+
+
 
 ## Age and sex plots {.tabset .tabset-fade}
 
@@ -623,17 +734,71 @@ combined_symptoms_plot <- ggplot(
   coord_flip()
 
 combined_symptoms_plot
-
-# #png
-# ggsave(
-#   "combined_symptoms_plot.png",
-#   plot = combined_symptoms_plot,
-#   device = "png",
-#   path = paste(plots_path, "age_and_sex/symptoms/"),
-#   width = 8,
-#   height = 9
-# )
 ```
+
+
+```{r save as png combined_symptoms_plot}
+if(prepandemic.31.Jan == FALSE | prepandemic.01.Mar == FALSE | prepandemic.23.Mar == FALSE) {
+ ggsave(
+   paste0("combined_symptoms_plot_full_sample", date, ".png"),
+   plot = combined_symptoms_plot,
+   device = "png",
+   path = paste0(plots_path, "age_and_sex/symptoms"),
+   width = 9,
+   height = 5
+ )
+}
+```
+
+
+Pre pandemic time points
+prepandemic.31.Jan = FALSE
+prepandemic.01.Mar = FALSE
+prepandemic.23.Mar = FALSE
+
+Save 3 different files with correct file extension
+
+```{r save as png combined_symptoms_plot prepandemic.31.Jan}
+if(prepandemic.31.Jan == TRUE) {
+ ggsave(
+   paste0("combined_symptoms_plot_prepandemic.31.Jan", date, ".png"),
+   plot = combined_symptoms_plot,
+   device = "png",
+   path = paste0(plots_path, "age_and_sex/symptoms"),
+   width = 9,
+   height = 5
+ )
+}
+```
+
+
+```{r save as png combined_symptoms_plot prepandemic.01.Mar}
+if(prepandemic.01.Mar == TRUE) {
+ ggsave(
+   paste0("combined_symptoms_plot_prepandemic.01.Mar", date, ".png"),
+   plot = combined_symptoms_plot,
+   device = "png",
+   path = paste0(plots_path, "age_and_sex/symptoms"),
+   width = 9,
+   height = 5
+ )
+}
+```
+
+
+```{r save as png combined_symptoms_plot prepandemic.23.Mar}
+if(prepandemic.23.Mar == TRUE) {
+ ggsave(
+   paste0("combined_symptoms_plot_prepandemic.23.Mar", date, ".png"),
+   plot = combined_symptoms_plot,
+   device = "png",
+   path = paste0(plots_path, "age_and_sex/symptoms"),
+   width = 9,
+   height = 5
+ )
+}
+```
+
 
 # **Sensitivity analysis with age as categorical** 
 
@@ -967,6 +1132,101 @@ ALL_CI.age.ordered.cat <-
 ALL_CI.age.ordered.cat
 ```
 
+```{r ALL_CI.age.ordered.cat.publication Format publication table}
+ALL_CI.age.ordered.cat.publication <- ALL_CI.age.ordered.cat %>%
+  mutate(
+    OR_rounded = round(OR, digits = 2),
+    OR.CI.lower_rounded = round(OR.CI.lower, digits = 2),
+    OR.CI.upper_rounded = round(OR.CI.upper, digits = 2),
+    P_converted = case_when(
+      p.value.adjusted < 0.001 ~ formatC(p.value.adjusted, format = "e", digits = 2),
+      p.value.adjusted >= 0.001 & p.value.adjusted < 0.01 ~ formatC(p.value.adjusted, format = "f",  digits = 3),
+      p.value.adjusted >= 0.01 ~ formatC(p.value.adjusted, format = "f", digits = 2)
+      )
+  ) %>%
+  select(
+    "Age group" = Key,
+    "Symptom" = symptom,
+    "OR" = OR_rounded,
+    "OR 95% CI lower" = OR.CI.lower_rounded,
+    "OR 95% CI upper" = OR.CI.upper_rounded,
+    "P-value adjusted" = P_converted
+  )
+
+ALL_CI.age.ordered.cat.publication
+```
+
+```{r Write ALL_CI.age.ordered.cat.publication publication table to excel file}
+if(prepandemic.31.Jan == FALSE | prepandemic.01.Mar == FALSE | prepandemic.23.Mar == FALSE) {
+  
+  write_rds(
+    x = ALL_CI.ordered.publication,
+    file = paste0(saved_r_objects_path,"OR_age_cat_pub_table_full_sample", date, ".rds")
+    )
+  
+  
+xlsx::write.xlsx(
+  x = ALL_CI.age.ordered.cat.publication,
+  file = paste0(saved_r_objects_path,"OR_age_cat_pub_table_full_sample", date, ".xlsx"),
+  sheetName = "OR_pub_table", row.names = TRUE
+  )
+}
+```
+
+Pre pandemic time points
+prepandemic.31.Jan = FALSE
+prepandemic.01.Mar = FALSE
+prepandemic.23.Mar = FALSE
+
+Save 3 different files with correct file extension
+
+```{r Write ALL_CI.age.ordered.cat.publication publication table to excel file prepandemic.31.Jan}
+if(prepandemic.31.Jan == TRUE) {
+  
+  write_rds(
+    x = ALL_CI.ordered.publication,
+    file = paste0(saved_r_objects_path,"OR_age_cat_pub_table_prepandemic.31.Jan", date, ".rds")
+    )
+  
+xlsx::write.xlsx(
+  x = ALL_CI.age.ordered.cat.publication,
+  file = paste0(saved_r_objects_path,"OR_age_cat_pub_table_prepandemic.31.Jan", date, ".xlsx"),
+  sheetName = "OR_age_cat_pub_table", row.names = TRUE
+  )
+}
+```
+
+```{r Write ALL_CI.age.ordered.cat.publication publication table to excel file prepandemic.01.Mar}
+if(prepandemic.01.Mar == TRUE) {
+  
+  write_rds(
+    x = ALL_CI.ordered.publication,
+    file = paste0(saved_r_objects_path,"OR_age_cat_pub_table_prepandemic.01.Mar", date, ".rds")
+    )
+  
+xlsx::write.xlsx(
+  x = ALL_CI.age.ordered.cat.publication,
+  file = paste0(saved_r_objects_path,"OR_age_cat_pub_table_prepandemic.01.Mar", date, ".xlsx"),
+  sheetName = "OR_age_cat_pub_table", row.names = TRUE
+  )
+}
+```
+
+```{r Write ALL_CI.age.ordered.cat.publication publication table to excel file prepandemic.23.Mar}
+if(prepandemic.31.Jan == TRUE) {
+  
+  write_rds(
+    x = ALL_CI.ordered.publication,
+    file = paste0(saved_r_objects_path,"OR_age_cat_pub_table_prepandemic.23.Mar", date, ".rds")
+    )
+  
+xlsx::write.xlsx(
+  x = ALL_CI.age.ordered.cat.publication,
+  file = paste0(saved_r_objects_path,"OR_age_cat_pub_table_prepandemic.23.Mar", date, ".xlsx"),
+  sheetName = "OR_age_cat_pub_table", row.names = TRUE
+  )
+}
+```
 
 ## Forest plot for categorical age 
 
@@ -993,17 +1253,74 @@ age.cat.plot <- ggplot(
     coord_flip()
 
 age.cat.plot
-
-# #png
-# ggsave(
-#   "age.cat.plot.png",
-#   plot = age.cat.plot,
-#   device = "png",
-#   path = paste0(plots_path, "/age_and_sex/symptoms/"),
-#   width = 9,
-#   height = 7
-# )
 ```
+
+
+
+
+```{r save as png age.cat.plot full_sample}
+if(prepandemic.31.Jan == FALSE | prepandemic.01.Mar == FALSE | prepandemic.23.Mar == FALSE) {
+ ggsave(
+   paste0("age.cat.plot_full_sample", date, ".png"),
+   plot = age.cat.plot,
+   device = "png",
+   path = paste0(plots_path, "age_and_sex/symptoms"),
+   width = 9,
+   height = 5
+ )
+}
+```
+
+
+Pre pandemic time points
+prepandemic.31.Jan = FALSE
+prepandemic.01.Mar = FALSE
+prepandemic.23.Mar = FALSE
+
+Save 3 different files with correct file extension
+
+```{r save as png age.cat.plot prepandemic.31.Jan}
+if(prepandemic.31.Jan == TRUE) {
+ ggsave(
+   paste0("age.cat.plot_prepandemic.31.Jan", date, ".png"),
+   plot = age.cat.plot,
+   device = "png",
+   path = paste0(plots_path, "age_and_sex/symptoms"),
+   width = 9,
+   height = 5
+ )
+}
+```
+
+
+```{r save as png age.cat.plot prepandemic.01.Mar}
+if(prepandemic.01.Mar == TRUE) {
+ ggsave(
+   paste0("age.cat.plot_prepandemic.01.Mar", date, ".png"),
+   plot = age.cat.plot,
+   device = "png",
+   path = paste0(plots_path, "age_and_sex/symptoms"),
+   width = 9,
+   height = 5
+ )
+}
+```
+
+
+```{r save as png age.cat.plot prepandemic.23.Mar}
+if(prepandemic.23.Mar == TRUE) {
+ ggsave(
+   paste0("age.cat.plot_prepandemic.23.Mar", date, ".png"),
+   plot = age.cat.plot,
+   device = "png",
+   path = paste0(plots_path, "age_and_sex/symptoms"),
+   width = 9,
+   height = 5
+ )
+}
+```
+
+
 
 # **Age and sex related variability for the identified factors**
 
@@ -1071,6 +1388,72 @@ factorsum_correlation_heat_map <- ggplot(metled_cor_matrix_factorsum, aes(Var2, 
 
 factorsum_correlation_heat_map
 ```
+
+
+```{r save as png factorsum_correlation_heat_map full_sample}
+if(prepandemic.31.Jan == FALSE | prepandemic.01.Mar == FALSE | prepandemic.23.Mar == FALSE) {
+ ggsave(
+   paste0("factorsum_correlation_heat_map_full_sample", date, ".png"),
+   plot = factorsum_correlation_heat_map,
+   device = "png",
+   path = paste0(plots_path, "age_and_sex/symptoms"),
+   width = 6.5,
+   height = 5
+ )
+}
+```
+
+
+Pre pandemic time points
+prepandemic.31.Jan = FALSE
+prepandemic.01.Mar = FALSE
+prepandemic.23.Mar = FALSE
+
+Save 3 different files with correct file extension
+
+```{r save as png factorsum_correlation_heat_map prepandemic.31.Jan}
+if(prepandemic.31.Jan == TRUE) {
+ ggsave(
+   paste0("factorsum_correlation_heat_map_prepandemic.31.Jan", date, ".png"),
+   plot = factorsum_correlation_heat_map,
+   device = "png",
+   path = paste0(plots_path, "age_and_sex/symptoms"),
+   width = 6.5,
+   height = 5
+ )
+}
+```
+
+
+```{r save as png factorsum_correlation_heat_map prepandemic.01.Mar}
+if(prepandemic.01.Mar == TRUE) {
+ ggsave(
+   paste0("factorsum_correlation_heat_map_prepandemic.01.Mar", date, ".png"),
+   plot = factorsum_correlation_heat_map,
+   device = "png",
+   path = paste0(plots_path, "age_and_sex/symptoms"),
+   width = 6.5,
+   height = 5
+ )
+}
+```
+
+
+```{r save as png factorsum_correlation_heat_map prepandemic.23.Mar}
+if(prepandemic.23.Mar == TRUE) {
+ ggsave(
+   paste0("factorsum_correlation_heat_map_prepandemic.23.Mar", date, ".png"),
+   plot = factorsum_correlation_heat_map,
+   device = "png",
+   path = paste0(plots_path, "age_and_sex/symptoms"),
+   width = 6.5,
+   height = 5
+ )
+}
+```
+
+
+
 
 ## Linear regressions for factors - age_divided + sex + PHQ.total.score + GAD.total.score
 
@@ -1201,8 +1584,103 @@ ALL_CI_factor <- ALL_CI_factor %>%
 
 #order
 ALL_CI_factor.ordered <- arrange(ALL_CI_factor, desc(estimate)) #ordered by age variables 
-kable(ALL_CI_factor.ordered)
+ALL_CI_factor.ordered
 ```
+```{r ALL_CI_factor.ordered Format publication table}
+ALL_CI_factor.ordered.publication <- ALL_CI_factor.ordered %>%
+  mutate(
+    estimate_rounded = round(estimate, digits = 4),
+    estimate.CI.lower_rounded = round(conf.low, digits = 4),
+    estimate.CI.upper_rounded = round(conf.high, digits = 4),
+    P_converted = case_when(
+      p.value.adjusted < 0.001 ~ formatC(p.value.adjusted, format = "e", digits = 2),
+      p.value.adjusted >= 0.001 & p.value.adjusted < 0.01 ~ formatC(p.value.adjusted, format = "f",  digits = 3),
+      p.value.adjusted >= 0.01 ~ formatC(p.value.adjusted, format = "f", digits = 2)
+      )
+  ) %>%
+  select(
+    "Variable" = term,
+    "Factor" = factor,
+    "Beta" = estimate_rounded,
+    "95% CI lower" = estimate.CI.lower_rounded,
+    "95% CI upper" = estimate.CI.upper_rounded,
+    "P-value adjusted" = P_converted
+  )
+
+ALL_CI_factor.ordered.publication
+```
+
+```{r Write ALL_CI_factor.ordered publication table to excel file}
+if(prepandemic.31.Jan == FALSE | prepandemic.01.Mar == FALSE | prepandemic.23.Mar == FALSE) {
+  
+  write_rds(
+    x = ALL_CI.ordered.publication,
+    file = paste0(saved_r_objects_path,"OR_ALL_CI_factor.ordered_full_sample", date, ".rds")
+    )
+  
+xlsx::write.xlsx(
+  x = ALL_CI_factor.ordered.publication,
+  file = paste0(saved_r_objects_path,"OR_ALL_CI_factor.ordered_full_sample", date, ".xlsx"),
+  sheetName = "ALL_CI_factor.ordered", row.names = TRUE
+  )
+}
+```
+
+Pre pandemic time points
+prepandemic.31.Jan = FALSE
+prepandemic.01.Mar = FALSE
+prepandemic.23.Mar = FALSE
+
+Save 3 different files with correct file extension
+
+```{r Write ALL_CI_factor.ordered publication table to excel file prepandemic.31.Jan}
+
+write_rds(
+    x = ALL_CI.ordered.publication,
+    file = paste0(saved_r_objects_path,"OR_ALL_CI_factor.ordered_prepandemic.31.Jan", date, ".rds")
+    )
+
+if(prepandemic.31.Jan == TRUE) {
+xlsx::write.xlsx(
+  x = ALL_CI_factor.ordered.publication,
+  file = paste0(saved_r_objects_path,"OR_ALL_CI_factor.ordered_prepandemic.31.Jan", date, ".xlsx"),
+  sheetName = "ALL_CI_factor.ordered", row.names = TRUE
+  )
+}
+```
+
+```{r Write ALL_CI_factor.ordered publication table to excel file prepandemic.01.Mar}
+
+write_rds(
+    x = ALL_CI.ordered.publication,
+    file = paste0(saved_r_objects_path,"OR_ALL_CI_factor.ordered_prepandemic.01.Mar", date, ".rds")
+    )
+
+if(prepandemic.01.Mar == TRUE) {
+xlsx::write.xlsx(
+  x = ALL_CI_factor.ordered.publication,
+  file = paste0(saved_r_objects_path,"OR_ALL_CI_factor.ordered_prepandemic.01.Mar", date, ".xlsx"),
+  sheetName = "ALL_CI_factor.ordered", row.names = TRUE
+  )
+}
+```
+
+```{r Write ALL_CI_factor.ordered publication table to excel file prepandemic.23.Mar}
+
+write_rds(
+    x = ALL_CI.ordered.publication,
+    file = paste0(saved_r_objects_path,"OR_ALL_CI_factor.ordered_prepandemic.23.Mar", date, ".rds")
+    )
+
+if(prepandemic.31.Jan == TRUE) {
+xlsx::write.xlsx(
+  x = ALL_CI_factor.ordered.publication,
+  file = paste0(saved_r_objects_path,"OR_ALL_CI_factor.ordered_prepandemic.23.Mar", date, ".xlsx"),
+  sheetName = "ALL_CI_factor.ordered", row.names = TRUE
+  )
+}
+```
+
 
 Make the symptom factor variable into a factor
 ```{r make the factor variable into a factor}
@@ -1272,6 +1750,70 @@ combined_factors_plot
 #   height = 9
 # )
 ```
+
+```{r save as png combined_factors_plot full_sample}
+if(prepandemic.31.Jan == FALSE | prepandemic.01.Mar == FALSE | prepandemic.23.Mar == FALSE) {
+ ggsave(
+   paste0("combined_factors_plot_full_sample", date, ".png"),
+   plot = combined_factors_plot,
+   device = "png",
+   path = paste0(plots_path, "age_and_sex/symptoms"),
+   width = 9,
+   height = 5
+ )
+}
+```
+
+
+Pre pandemic time points
+prepandemic.31.Jan = FALSE
+prepandemic.01.Mar = FALSE
+prepandemic.23.Mar = FALSE
+
+Save 3 different files with correct file extension
+
+```{r save as png combined_factors_plot prepandemic.31.Jan}
+if(prepandemic.31.Jan == TRUE) {
+ ggsave(
+   paste0("combined_factors_plot_prepandemic.31.Jan", date, ".png"),
+   plot = combined_factors_plot,
+   device = "png",
+   path = paste0(plots_path, "age_and_sex/symptoms"),
+   width = 9,
+   height = 5
+ )
+}
+```
+
+
+```{r save as png combined_factors_plot prepandemic.01.Mar}
+if(prepandemic.01.Mar == TRUE) {
+ ggsave(
+   paste0("combined_factors_plot_prepandemic.01.Mar", date, ".png"),
+   plot = combined_factors_plot,
+   device = "png",
+   path = paste0(plots_path, "age_and_sex/symptoms"),
+   width = 9,
+   height = 5
+ )
+}
+```
+
+
+```{r save as png combined_factors_plot prepandemic.23.Mar}
+if(prepandemic.23.Mar == TRUE) {
+ ggsave(
+   paste0("combined_factors_plot_prepandemic.23.Mar", date, ".png"),
+   plot = combined_factors_plot,
+   device = "png",
+   path = paste0(plots_path, "age_and_sex/symptoms"),
+   width = 9,
+   height = 5
+ )
+}
+```
+
+
 
 # **Sensitivity analysis: Linear regressions rerun for factor associations WITHOUT controlling for sum scores**
 
@@ -1458,16 +2000,69 @@ combined_factors_plot_without_sum <- ggplot(
   geom_hline(linetype = "dashed", yintercept = 0) +
  coord_flip()
 combined_factors_plot_without_sum
+```
 
-# #jpeg
-# ggsave(
-#   "combined_factors_plot_without_sum",
-#   plot = combined_factors_plot_without_sum,
-#   device = "jpeg",
-#   path = paste0(plots_path,"age_and_sex/factors/"),
-#   width = 7,
-#   height = 4
-# )
+
+```{r save as png combined_factors_plot_without_sum full_sample}
+if(prepandemic.31.Jan == FALSE | prepandemic.01.Mar == FALSE | prepandemic.23.Mar == FALSE) {
+ ggsave(
+   paste0("combined_factors_plot_without_sum_full_sample", date, ".png"),
+   plot = combined_factors_plot_without_sum,
+   device = "png",
+   path = paste0(plots_path, "age_and_sex/symptoms"),
+   width = 6,
+   height = 4
+ )
+}
+```
+
+
+Pre pandemic time points
+prepandemic.31.Jan = FALSE
+prepandemic.01.Mar = FALSE
+prepandemic.23.Mar = FALSE
+
+Save 3 different files with correct file extension
+
+```{r save as png combined_factors_plot_without_sum prepandemic.31.Jan}
+if(prepandemic.31.Jan == TRUE) {
+ ggsave(
+   paste0("combined_factors_plot_without_sum_prepandemic.31.Jan", date, ".png"),
+   plot = combined_factors_plot_without_sum,
+   device = "png",
+   path = paste0(plots_path, "age_and_sex/symptoms"),
+   width = 6,
+   height = 4
+ )
+}
+```
+
+
+```{r save as png combined_factors_plot_without_sum prepandemic.01.Mar}
+if(prepandemic.01.Mar == TRUE) {
+ ggsave(
+   paste0("combined_factors_plot_without_sum_prepandemic.01.Mar", date, ".png"),
+   plot = combined_factors_plot_without_sum,
+   device = "png",
+   path = paste0(plots_path, "age_and_sex/symptoms"),
+   width = 6,
+   height = 4
+ )
+}
+```
+
+
+```{r save as png combined_factors_plot_without_sum prepandemic.23.Mar}
+if(prepandemic.23.Mar == TRUE) {
+ ggsave(
+   paste0("combined_factors_plot_without_sum_prepandemic.23.Mar", date, ".png"),
+   plot = combined_factors_plot_without_sum,
+   device = "png",
+   path = paste0(plots_path, "age_and_sex/symptoms"),
+   width = 6,
+   height = 4
+ )
+}
 ```
 
 
@@ -1491,17 +2086,69 @@ age_sex_symptom_factor_plot <- ggarrange(combined_symptoms_plot, combined_factor
                     common.legend = TRUE,
                     legend = "bottom")
 age_sex_symptom_factor_plot
-
-# #png
-# ggsave(
-#   "combined.final_plot.png",
-#   plot = age_sex_symptom_factor_plot,
-#   device = "png",
-#   path = paste0(plots_path,"age_and_sex/"),
-#   width = 12,
-#   height = 6
-# )
 ```
 
 
+
+```{r save as png age_sex_symptom_factor_plot full_sample}
+if(prepandemic.31.Jan == FALSE | prepandemic.01.Mar == FALSE | prepandemic.23.Mar == FALSE) {
+ ggsave(
+   paste0("age_sex_symptom_factor_plot_full_sample", date, ".png"),
+   plot = age_sex_symptom_factor_plot,
+   device = "png",
+   path = paste0(plots_path, "age_and_sex/symptoms"),
+   width = 11,
+   height = 5
+ )
+}
+```
+
+
+Pre pandemic time points
+prepandemic.31.Jan = FALSE
+prepandemic.01.Mar = FALSE
+prepandemic.23.Mar = FALSE
+
+Save 3 different files with correct file extension
+
+```{r save as png age_sex_symptom_factor_plot prepandemic.31.Jan}
+if(prepandemic.31.Jan == TRUE) {
+ ggsave(
+   paste0("age_sex_symptom_factor_plot_prepandemic.31.Jan", date, ".png"),
+   plot = age_sex_symptom_factor_plot,
+   device = "png",
+   path = paste0(plots_path, "age_and_sex/symptoms"),
+   width = 11,
+   height = 5
+ )
+}
+```
+
+
+```{r save as png age_sex_symptom_factor_plot prepandemic.01.Mar}
+if(prepandemic.01.Mar == TRUE) {
+ ggsave(
+   paste0("age_sex_symptom_factor_plot_prepandemic.01.Mar", date, ".png"),
+   plot = age_sex_symptom_factor_plot,
+   device = "png",
+   path = paste0(plots_path, "age_and_sex/symptoms"),
+   width = 11,
+   height = 5
+ )
+}
+```
+
+
+```{r save as png age_sex_symptom_factor_plot prepandemic.23.Mar}
+if(prepandemic.23.Mar == TRUE) {
+ ggsave(
+   paste0("age_sex_symptom_factor_plot_prepandemic.23.Mar", date, ".png"),
+   plot = age_sex_symptom_factor_plot,
+   device = "png",
+   path = paste0(plots_path, "age_and_sex/symptoms"),
+   width = 11,
+   height = 5
+ )
+}
+```
 
