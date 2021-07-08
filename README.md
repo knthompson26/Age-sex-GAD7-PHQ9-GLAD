@@ -24,6 +24,16 @@ The analysis script includes the following components:
   a) Logistic regression analyses for individual symptoms (symptom_binary ~ age/10 + sex + PHQ.total.score + GAD.total.score)
   
   b) Linear regression analyses for factor scores (factor ~ age/10 + sex + PHQ.total.score + GAD.total.score)
+  
+4. Post hoc sensitivity analyses conducted:
+
+  a) All factor analyses and regression models re-computed whilst stratifying based on completion during COVID: individuals that participated during the COVID-19 pandemic were excluded at three intervals.
+    - 31st January 2020 (first UK case; N=2456)
+    - 1st March 2020 (higher awareness; N= 1222)
+    - 23rd March 2020 (first UK lockdown; N=342)
+    
+  b) Regression analyses were recomputed including highest education level (as a proxy for socioeconomic status) in the model. 
+
 
 **Please note, the current paper is under review. DOI and reference will be available once published.**
 
