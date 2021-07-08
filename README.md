@@ -1,6 +1,6 @@
 Age-sex-GAD7-PHQ9-GLAD
 
-# Code for manuscript "Age and sex-related variability in the presentation of anxiety and depression symptoms" 
+# Code for manuscript "Age and sex-related variability in the presentation of generalised anxiety and depression symptoms" 
 ## Authors: Katherine N Thompson, Christopher Hübel, Rosa Cheesman ... Gerome Breen, Thalia Eley. 
 
 All code written by Katherine N Thompson.  
