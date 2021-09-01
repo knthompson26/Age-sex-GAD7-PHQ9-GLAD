@@ -39,7 +39,7 @@ The analysis script includes the following components:
     b) Regression analyses were recomputed including highest education level (as a proxy for socioeconomic status) in the model. 
 
 
-**Please note, the current paper is under review. DOI and reference will be available once published.**
+**Please note, the current paper is has been accepted for publication in Depression and Anxiety, and is currently in Press. DOI and reference will be available once published.**
 
 
 
