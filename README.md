@@ -1,7 +1,8 @@
 Age-sex-GAD7-PHQ9-GLAD
 
-# Code for manuscript "Age and sex-related variability in the presentation of generalised anxiety and depression symptoms" 
+# Code for paper "Age and sex-related variability in the presentation of generalized anxiety and depression symptoms" published in Depression and Anxiety (2021). 
 ## Authors: Katherine N Thompson, Christopher Hübel, Rosa Cheesman ... Gerome Breen, Thalia Eley. 
+### https://doi.org/10.1002/da.23213
 
 All code written by Katherine N Thompson.  
 
@@ -37,10 +38,6 @@ The analysis script includes the following components:
     
     
     b) Regression analyses were recomputed including highest education level (as a proxy for socioeconomic status) in the model. 
-
-
-**Please note, the current paper is has been accepted for publication in Depression and Anxiety, and is currently in Press. DOI and reference will be available once published.**
-
-
-
-
+    
+**Full paper reference:**
+Thompson, K. N., Hübel, C.,Cheesman, R., Adey, B. N., Armour, C., Davies, M. R., Hotopf, M., Jones, I. R., Kalsi, G., McIntosh, A. M., Monssen, D., Peel,A. J., Rogers, H. C., Skelton, M., Smith, D. J., Walters, J. T. R., Breen, G., & Eley, T. C. (2021). Age and sex-related variability in the presentation of generalized anxiety and depression symptoms. Depression and Anxiety, 1–12. https://doi.org/10.1002/da.23213
